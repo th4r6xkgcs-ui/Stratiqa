@@ -132,13 +132,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="live-pill"><i /> LIVE</span>
             <button aria-label="Notifications"><Bell size={20} /><b>3</b></button>
             <span className="streak"><Flame size={20} /> 18</span>
-            <Link href="/analysts/heriberto" className="top-avatar"><Image src="/analyst-heriberto.png" alt="Heriberto" width={42} height={42} /><i /></Link>
+            <Link href="/account" className="top-avatar" aria-label="Account and preferences"><Image src="/analyst-heriberto.png" alt="Heriberto" width={42} height={42} /><i /></Link>
           </div>
         </header>
         <main className="content">{children}</main>
         <footer className="system-footer">
           <div><span>Model Refresh: 17s ago</span><span>Odds Sync: 23s ago</span><span>Last Injury Feed: Just now</span></div>
-          <div><strong>STRATIQA v15.1</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
+          <div><strong>STRATIQA v15.3</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
     </div>

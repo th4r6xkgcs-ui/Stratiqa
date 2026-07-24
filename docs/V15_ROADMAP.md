@@ -24,7 +24,7 @@ Live credentials are intentionally not committed. `STRATIQA_DATA_PROVIDER` defau
 
 1. **V15.1 — AI Coach Intelligence & Live Data Foundation (complete):** conversational Coach, provider service contracts, full matchup intelligence, Props Lab, shared reasoning components, responsive premium states, and performance/accessibility foundations.
 2. **V15.2 — Live Data Reliability (complete):** credential-aware environment selection, normalized no-vig/EV utilities, server caching, exponential retry, stale-data fallback, provider health telemetry, persistent Coach/Props state, and pricing contract tests.
-3. **V15.3 — Credentialed providers and identity:** production vendor integrations, authentication, user-specific risk profiles, server-side persistence, request rate limiting, and provider contract/browser tests.
+3. **V15.3 — Provider and Identity Foundation (complete):** vendor-neutral HTTP provider base, signed HTTP-only sessions, development login adapter, user preference repository, risk profiles, rate limiting, security headers, and identity validation tests.
 4. **V15.4 — Acquisition:** premium public landing page, onboarding, preference capture, responsible-use messaging, and activation analytics.
 5. **V15.5 — Release readiness:** browser journeys, accessibility audit, observability, security headers, deployment previews, rollback notes, and release checklist.
 

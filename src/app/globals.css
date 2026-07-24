@@ -611,6 +611,19 @@ button { color: inherit; }
 .provider-health-summary strong { font-size: 9px; }
 .provider-health-summary small { color: var(--muted); font-size: 8px; }
 .provider-health > p { margin: 0; padding: 0 14px 13px; color: var(--orange); font-size: 8px; line-height: 1.5; }
+.account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.account-grid .card > header { display: flex; justify-content: space-between; align-items: center; min-height: 47px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.account-grid header > span { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; }
+.account-identity form, .account-preferences > div { display: grid; gap: 13px; padding: 20px; }
+.account-identity form > p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+.account-grid label { display: grid; gap: 6px; color: var(--muted); font-size: 8px; text-transform: uppercase; }
+.account-grid input, .account-grid select { min-height: 39px; padding: 0 10px; color: white; background: #030b14; border: 1px solid var(--line-bright); border-radius: 6px; outline: none; }
+.account-user { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; padding: 25px 20px; }
+.account-user > svg { width: 44px; height: 44px; padding: 10px; color: var(--green); background: #0a1c24; border-radius: 50%; }
+.account-user > span { display: flex; flex-direction: column; gap: 4px; }.account-user small, .account-user em { color: var(--muted); font-size: 8px; font-style: normal; }
+.account-status { margin: 0 20px 18px; color: var(--green); font-size: 9px; }
+.account-loading { margin: 30px; padding: 30px; color: var(--muted); }
+@media (max-width: 760px) { .account-grid { grid-template-columns: 1fr; }.account-user { grid-template-columns: 42px 1fr; }.account-user .button { grid-column: 1 / 3; } }
 .premium-empty { display: flex; align-items: center; flex-direction: column; padding: 60px 20px; color: var(--muted); text-align: center; }.premium-empty strong { margin-top: 10px; color: white; }.premium-empty p { font-size: 9px; }.premium-empty button { color: var(--purple); background: transparent; border: 0; cursor: pointer; }
 .skeleton { overflow: hidden; position: relative; background: #0b1622; border-radius: 7px; }.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); animation: shimmer 1.25s infinite; }
 .skeleton-title { width: 42%; height: 44px; margin: 20px 0; }.skeleton-panel { height: 330px; }.skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }.skeleton-card { height: 230px; }
