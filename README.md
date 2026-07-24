@@ -13,6 +13,8 @@ Run the complete local release check with:
 npm run check
 ```
 
+The same gate runs in GitHub Actions for pull requests and pushes to the release branches. It installs the locked dependency graph, then runs lint, strict TypeScript, unit tests, and the production build.
+
 ## Data providers
 
 V15 uses a server-only adapter boundary. Without credentials, the app defaults to clearly labeled representative data:
