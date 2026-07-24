@@ -1,0 +1,37 @@
+# STRATIQA V15 Roadmap
+
+## Audit baseline
+
+- V14.2 is preserved at `v14.2-premium-ui` and PR #1.
+- The app builds and lints, but had no explicit typecheck or test command.
+- Product data was embedded directly in presentation components.
+- AI Coach was a static dashboard card without a dedicated workflow or server boundary.
+- Mobile navigation existed, while dense workflows still needed task-specific responsive treatment.
+
+## V15.0 — AI Coach and data foundation
+
+This milestone creates the production seam without requiring vendor credentials:
+
+- typed intelligence/odds domain contracts
+- server-only adapter selection with a deterministic mock fallback
+- validated Coach route handler with safe error responses
+- dedicated responsive Coach workspace with suggested prompts and data provenance
+- automated lint, typecheck, unit-test, and build commands
+
+Live credentials are intentionally not committed. `STRATIQA_DATA_PROVIDER` defaults to `mock`; a credentialed adapter can replace it without changing UI consumers.
+
+## Staged milestones
+
+1. **V15.1 — AI Coach Intelligence & Live Data Foundation (complete):** conversational Coach, provider service contracts, full matchup intelligence, Props Lab, shared reasoning components, responsive premium states, and performance/accessibility foundations.
+2. **V15.2 — Live Data Reliability (complete):** credential-aware environment selection, normalized no-vig/EV utilities, server caching, exponential retry, stale-data fallback, provider health telemetry, persistent Coach/Props state, and pricing contract tests.
+3. **V15.3 — Credentialed providers and identity:** production vendor integrations, authentication, user-specific risk profiles, server-side persistence, request rate limiting, and provider contract/browser tests.
+4. **V15.4 — Acquisition:** premium public landing page, onboarding, preference capture, responsible-use messaging, and activation analytics.
+5. **V15.5 — Release readiness:** browser journeys, accessibility audit, observability, security headers, deployment previews, rollback notes, and release checklist.
+
+## V15.0 acceptance criteria
+
+- No changes are committed to the stable V14.2 branch.
+- Coach requests are validated and answered through a server route.
+- UI labels representative data clearly and never implies it is live.
+- Provider secrets cannot enter the client bundle.
+- Lint, typecheck, unit tests, and production build pass.

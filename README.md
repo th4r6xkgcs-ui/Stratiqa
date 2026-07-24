@@ -3,6 +3,25 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ## Product Documentation
 
 - [Product section architecture](docs/PRODUCT_SECTIONS.md)
+- [V15 roadmap and V15.0 scope](docs/V15_ROADMAP.md)
+
+## Quality gates
+
+Run the complete local release check with:
+
+```bash
+npm run check
+```
+
+The same gate runs in GitHub Actions for pull requests and pushes to the release branches. It installs the locked dependency graph, then runs lint, strict TypeScript, unit tests, and the production build.
+
+## Data providers
+
+V15 uses a server-only adapter boundary. Without credentials, the app defaults to clearly labeled representative data:
+
+```bash
+STRATIQA_DATA_PROVIDER=mock
+```
 
 ## Getting Started
 

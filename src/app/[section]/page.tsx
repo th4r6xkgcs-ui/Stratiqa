@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { SectionExperience } from "@/components/sections/section-experience";
 
 const sectionSlugs = [
-  "teams", "players", "props", "community", "friends", "leaderboard",
+  "teams", "players", "community", "friends", "leaderboard",
   "groups", "alerts", "lab", "settings", "privacy", "terms", "support",
 ];
 

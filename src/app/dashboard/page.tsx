@@ -122,10 +122,10 @@ export default function DashboardPage() {
 
         <aside className="intel-rail">
           <Card className="ai-coach">
-            <header><span><Sparkles size={18} /> AI Coach</span><Link href="/matchups">View Plan <ArrowRight size={13} /></Link></header>
+            <header><span><Sparkles size={18} /> AI Coach</span><Link href="/coach">Open Coach <ArrowRight size={13} /></Link></header>
             <h3>Good evening, Heriberto.</h3><p>Here&apos;s your game plan for today.</p>
             <div className="coach-list">
-              <Link href="/matchups"><Star /><span><strong>Start with Seattle ML</strong><small>Strongest edge on the board.</small></span></Link>
+              <Link href="/coach"><Star /><span><strong>Start with Seattle ML</strong><small>Strongest edge on the board.</small></span></Link>
               <Link href="/props"><Target /><span><strong>Check Julio Rodriguez Props</strong><small>3 high value opportunities.</small></span></Link>
               <Link href="/matchups"><AlertTriangle /><span><strong>Fade 2 games today</strong><small>Low value or high risk matchups.</small></span></Link>
             </div>
