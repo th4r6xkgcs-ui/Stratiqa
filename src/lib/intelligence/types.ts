@@ -27,6 +27,10 @@ export type CoachPrompt = {
 
 export type CoachReply = {
   answer: string;
+  confidence: { value: number; explanation: string };
+  risk: { level: "Low" | "Medium" | "High"; explanation: string };
+  reasoning: Array<{ title: string; detail: string }>;
+  alternatives: Array<{ selection: string; expectedValue: number; confidence: number }>;
   followUps: string[];
   snapshot: IntelligenceSnapshot;
 };

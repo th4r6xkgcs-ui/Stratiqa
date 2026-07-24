@@ -138,7 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="content">{children}</main>
         <footer className="system-footer">
           <div><span>Model Refresh: 17s ago</span><span>Odds Sync: 23s ago</span><span>Last Injury Feed: Just now</span></div>
-          <div><strong>STRATIQA v15.0</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
+          <div><strong>STRATIQA v15.1</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
     </div>

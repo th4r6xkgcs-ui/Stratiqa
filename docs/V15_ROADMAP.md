@@ -22,8 +22,8 @@ Live credentials are intentionally not committed. `STRATIQA_DATA_PROVIDER` defau
 
 ## Staged milestones
 
-1. **V15.1 — Props and EV Lab:** normalized sportsbook quotes, implied-probability and no-vig calculations, line comparison, filters, sortable EV board, and detail views.
-2. **V15.2 — Live data adapters:** provider-specific odds and sports-data adapters, caching, retry/backoff, stale-data policy, health telemetry, and contract tests.
+1. **V15.1 — AI Coach Intelligence & Live Data Foundation (complete):** conversational Coach, provider service contracts, full matchup intelligence, Props Lab, shared reasoning components, responsive premium states, and performance/accessibility foundations.
+2. **V15.2 — Credentialed live data adapters:** provider-specific API integrations, normalized no-vig calculations, server caching, retry/backoff, stale-data policy, health telemetry, authentication, persistent saved props, and contract/browser tests.
 3. **V15.3 — Acquisition:** premium public landing page, onboarding, preference capture, responsible-use messaging, authentication handoff, and activation analytics.
 4. **V15.4 — Mobile and motion:** phone-first navigation and card hierarchy, reduced-motion support, confidence/odds micro-interactions, and performance budgets.
 5. **V15.5 — Release readiness:** browser journeys, accessibility audit, observability, security headers, environment validation, deployment previews, rollback notes, and release checklist.
