@@ -5,13 +5,15 @@ import { ArrowUp, Bot, CheckCircle2, ChevronDown, Database, History, ShieldCheck
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { CoachInsights } from "./coach-insights";
 import type { CoachReply } from "@/lib/intelligence/types";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import { ProviderHealthPanel } from "@/components/intelligence/provider-health-panel";
 
 const prompts = ["Explain today's top play", "Find another edge", "Safest bet today", "Biggest upset chance", "Best value play", "Show best props"];
 type Turn = { id: number; question: string; reply: CoachReply };
 
 export function CoachWorkspace() {
   const [message, setMessage] = useState("");
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [turns, setTurns] = usePersistentState<Turn[]>("stratiqa.coach.history.v1", []);
   const [streamed, setStreamed] = useState("");
   const [pending, setPending] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
@@ -82,6 +84,7 @@ export function CoachWorkspace() {
         </form>
       </Card>
       <aside className="coach-context">
+        <ProviderHealthPanel />
         <Card className="glass-card"><header><span><Database size={17} /> Data context</span></header><div className="coach-context-body"><p><CheckCircle2 /> Seven provider services connected</p><p><ShieldCheck /> Credentials remain server-side</p><small>{latest ? `${latest.reply.snapshot.provider} · refreshed ${new Date(latest.reply.snapshot.generatedAt).toLocaleTimeString()}` : "Representative providers are active until live credentials are configured."}</small></div></Card>
         <Card><header><span>How answers are ranked</span></header><ol className="coach-ranking"><li><b>1</b><span><strong>Expected value</strong><small>Model probability versus market price</small></span></li><li><b>2</b><span><strong>Confidence</strong><small>Signal quality and agreement</small></span></li><li><b>3</b><span><strong>Risk fit</strong><small>Price limits and uncertainty</small></span></li></ol></Card>
       </aside>

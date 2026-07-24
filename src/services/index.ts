@@ -6,17 +6,24 @@ import { MockPropsProvider } from "./props-provider";
 import { MockStandingsProvider } from "./standings-provider";
 import { MockStatsProvider } from "./stats-provider";
 import { MockWeatherProvider } from "./weather-provider";
-import type { MatchupIntelligence } from "./types";
+import { ResilientProvider } from "./runtime";
+import { getProviderEnvironment } from "./environment";
+import type { MatchupIntelligence, ProviderHealth } from "./types";
 
 export const providers = {
-  odds: new MockOddsProvider(),
-  weather: new MockWeatherProvider(),
-  injuries: new MockInjuriesProvider(),
-  standings: new MockStandingsProvider(),
-  stats: new MockStatsProvider(),
-  props: new MockPropsProvider(),
-  lineMovement: new MockLineMovementProvider(),
+  odds: new ResilientProvider("odds", new MockOddsProvider()),
+  weather: new ResilientProvider("weather", new MockWeatherProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
+  injuries: new ResilientProvider("injuries", new MockInjuriesProvider()),
+  standings: new ResilientProvider("standings", new MockStandingsProvider(), { ttlMs: 300_000, staleMs: 1_800_000, retries: 2 }),
+  stats: new ResilientProvider("stats", new MockStatsProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
+  props: new ResilientProvider("props", new MockPropsProvider()),
+  lineMovement: new ResilientProvider("lineMovement", new MockLineMovementProvider()),
 };
+
+export async function getProviderHealth(): Promise<{ environment: ReturnType<typeof getProviderEnvironment>; providers: ProviderHealth[] }> {
+  await Promise.allSettled(Object.values(providers).map((provider) => provider.getData()));
+  return { environment: getProviderEnvironment(), providers: Object.values(providers).map((provider) => provider.getHealth()) };
+}
 
 const matchupBase = {
   "sea-vs-sf": { away: "Seattle Mariners", awayAbbr: "SEA", home: "San Francisco Giants", homeAbbr: "SF", startTime: "7:10 PM", pick: "Seattle Mariners ML", aiSummary: "Seattle owns the strongest risk-adjusted edge on the slate. Bullpen leverage, starting pitching, and a still-playable market price align without a material weather penalty.", winProbability: 63, modelEdge: 13.2, expectedValue: 16.5, confidence: 91, valueGrade: "A+" },

@@ -3,11 +3,23 @@ export type ProviderResult<T> = {
   provider: string;
   mode: "mock" | "live";
   updatedAt: string;
+  stale?: boolean;
+  latencyMs?: number;
 };
 
 export interface DataProvider<T> {
   getData(): Promise<ProviderResult<T>>;
 }
+
+export type ProviderHealth = {
+  name: string;
+  status: "healthy" | "degraded" | "unavailable";
+  mode: "mock" | "live";
+  latencyMs: number;
+  lastSuccessAt: string | null;
+  consecutiveFailures: number;
+  stale: boolean;
+};
 
 export type SportsbookQuote = { book: string; price: number; line: string };
 export type OddsData = { matchupId: string; quotes: SportsbookQuote[]; bestBook: string };

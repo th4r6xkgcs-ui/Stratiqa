@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Bookmark, Check, Filter, Layers3, Plus, Search, Sparkles, TrendingUp, X } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import type { PropData } from "@/services/types";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 
 const filters = ["All", "AI Pick", "High EV", "Trending", "Correlated", "SGP", "Safe"];
 
@@ -15,8 +16,8 @@ function TrendBars({ values }: { values: number[] }) {
 export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; provider: string; updatedAt: string }) {
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [parlay, setParlay] = useState<string[]>([]);
+  const [favorites, setFavorites] = usePersistentState<string[]>("stratiqa.props.favorites.v1", []);
+  const [parlay, setParlay] = usePersistentState<string[]>("stratiqa.props.parlay.v1", []);
   const visible = useMemo(() => props.filter((prop) => (filter === "All" || prop.tags.includes(filter)) && `${prop.player} ${prop.team} ${prop.market}`.toLowerCase().includes(query.toLowerCase())), [filter, props, query]);
   const selectedProps = props.filter((prop) => parlay.includes(prop.id));
 
