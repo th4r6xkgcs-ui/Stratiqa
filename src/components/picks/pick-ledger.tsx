@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, CircleDollarSign, Clock3, Plus, ShieldAlert, Target, TrendingUp, X } from "lucide-react";
+import { Check, CircleDollarSign, Clock3, LockKeyhole, Plus, ShieldAlert, Target, TrendingUp } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import type { TrackedPick } from "@/repositories/picks";
 
@@ -38,7 +38,7 @@ export function PickLedger() {
   }, []);
 
   const summary = useMemo(() => {
-    const graded = picks.filter((pick) => pick.result !== "pending");
+    const graded = picks.filter((pick) => pick.verificationStatus === "verified" && pick.result !== "pending");
     const wins = graded.filter((pick) => pick.result === "win").length;
     const decisions = graded.filter((pick) => pick.result === "win" || pick.result === "loss").length;
     const profit = graded.reduce((sum, pick) => sum + (pick.profitUnits ?? 0), 0);
@@ -60,14 +60,6 @@ export function PickLedger() {
     setStatus("Pick added as self-reported and pending.");
   }
 
-  async function grade(id: string, resultValue: "win" | "loss" | "push" | "void") {
-    const response = await fetch("/api/picks", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, result: resultValue }) });
-    const result = await response.json();
-    if (!response.ok) return setStatus(result.error);
-    setPicks((current) => current.map((pick) => pick.id === id ? result.pick : pick));
-    setStatus("Self-reported result saved. Provider verification remains pending.");
-  }
-
   return (
     <div className="ledger-layout">
       <Card className="ledger-entry glass-card">
@@ -85,17 +77,17 @@ export function PickLedger() {
 
       <main className="ledger-main">
         <section className="ledger-metrics">
-          <Card><Target /><span><small>Graded picks</small><strong>{summary.graded}</strong></span></Card>
+          <Card><Target /><span><small>Verified picks</small><strong>{summary.graded}</strong></span></Card>
           <Card><Check /><span><small>Win rate</small><strong>{summary.graded ? `${summary.winRate.toFixed(1)}%` : "—"}</strong></span></Card>
           <Card><CircleDollarSign /><span><small>Net units</small><strong className={summary.profit >= 0 ? "positive" : "negative"}>{summary.profit >= 0 ? "+" : ""}{summary.profit.toFixed(2)}</strong></span></Card>
-          <Card><TrendingUp /><span><small>Self-reported ROI</small><strong>{summary.graded ? `${summary.roi.toFixed(1)}%` : "—"}</strong></span></Card>
+          <Card><TrendingUp /><span><small>Verified ROI</small><strong>{summary.graded ? `${summary.roi.toFixed(1)}%` : "—"}</strong></span></Card>
         </section>
         <Card className="ledger-history">
           <header><span><Clock3 /> Pick history</span><Badge>{picks.length} tracked</Badge></header>
           {picks.length ? <div>{picks.map((pick) => <article key={pick.id}>
             <div className="ledger-pick-main"><span><Badge tone={pick.result === "win" ? "success" : pick.result === "loss" ? "warning" : "neutral"}>{pick.result}</Badge><small>{pick.sport} · {pick.category.replace("_", " ")}</small></span><strong>{pick.selection}</strong><p>{pick.eventName} · {pick.market}</p></div>
             <div className="ledger-pick-price"><strong>{pick.americanOdds > 0 ? "+" : ""}{pick.americanOdds}</strong><small>{pick.sportsbook} · {pick.stakeUnits}u</small>{pick.profitUnits !== null ? <b>{pick.profitUnits >= 0 ? "+" : ""}{pick.profitUnits.toFixed(2)}u</b> : null}</div>
-            {pick.result === "pending" ? <div className="grade-actions"><small>Grade manually</small><span><button onClick={() => grade(pick.id, "win")}><Check /> Win</button><button onClick={() => grade(pick.id, "loss")}><X /> Loss</button><button onClick={() => grade(pick.id, "push")}>Push</button></span></div> : <div className="pick-source"><ShieldAlert /> Self-reported</div>}
+            <div className="pick-source">{pick.verificationStatus === "verified" ? <><Check /> Provider verified</> : pick.verificationStatus === "pending" ? <><Clock3 /> Awaiting automatic result</> : <><LockKeyhole /> Private journal · rating ineligible</>}</div>
           </article>)}</div> : <div className="ledger-empty"><Target /><strong>No tracked picks yet</strong><p>Add a position to begin building your performance history.</p></div>}
         </Card>
         {status ? <p className="ledger-status" role="status">{status}</p> : null}
