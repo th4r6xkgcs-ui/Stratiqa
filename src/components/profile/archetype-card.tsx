@@ -20,16 +20,17 @@ export function ArchetypeCard({ input, label = "LIVE ARCHETYPE", compact = false
       <div className="archetype-label"><span><i /> {label}</span><b>{archetype.signature}</b></div>
       <div className="archetype-core">
         <div className="archetype-chart" style={style}><div><Sparkles /><small>YOU ARE</small></div></div>
-        <div className="archetype-copy"><span>YOUR STRATIQA ARCHETYPE</span><strong>{archetype.name}</strong><p>{archetype.description}</p></div>
+        <div className="archetype-copy"><span>YOUR STRATIQA ARCHETYPE · {archetype.stage.toUpperCase()}</span><strong>{archetype.name}</strong><p>{archetype.description}</p></div>
       </div>
+      <div className="archetype-drivers"><span>SHAPED BY</span><div>{archetype.drivers.map((driver) => <b key={driver}>{driver}</b>)}</div></div>
       <div className="archetype-legend">
         {(Object.entries(archetype.dimensions) as Array<[string, number]>).map(([name, value]) => <span data-dimension={name.toLowerCase()} key={name}><i />{name}<b>{value}%</b></span>)}
       </div>
       <div className="category-ratings">
-        <header><span>SKILL RATINGS</span><small>Playstyle calibration</small></header>
+        <header><span>PLAYSTYLE RATINGS</span><small>Behavior will recalibrate these</small></header>
         {Object.entries(archetype.categoryRatings).map(([name, value]) => <div key={name}><span><small>{name}</small><b>{value}</b></span><i><em style={{ width: `${value}%` }} /></i></div>)}
       </div>
-      <p className="ranking-lock">Verified local and global ranks unlock after 25 graded picks.</p>
+      <p className="ranking-lock">Your origin profile will evolve with every graded pick. Verified local and global ranks unlock after 25.</p>
     </div>
   );
 }

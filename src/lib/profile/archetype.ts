@@ -14,6 +14,8 @@ export type PlaystyleArchetype = {
   signature: string;
   dimensions: Record<PlaystyleDimension, number>;
   categoryRatings: Record<"Prop IQ" | "Value Detection" | "Market Timing" | "Model Discipline" | "Line Shopping" | "Slate Range", number>;
+  drivers: string[];
+  stage: "Origin profile" | "Calibrating" | "Verified";
 };
 
 const hybridNames: Record<string, [string, string]> = {
@@ -23,6 +25,22 @@ const hybridNames: Record<string, [string, string]> = {
   "Confidence+Market": ["The Market Warden", "Requires model conviction and market confirmation before moving."],
   "Confidence+Props": ["The Projection Oracle", "Sees player-level outcomes through evidence, context, and model agreement."],
   "Market+Props": ["The Slate Cartographer", "Maps player markets across books to uncover hidden paths to value."],
+};
+
+const styleHybridNames: Record<string, [string, string]> = {
+  "Patient & precise|Confidence+Value": ["The Iron Thesis", "Waits for exceptional evidence, then holds conviction through market noise."],
+  "Patient & precise|Confidence+Props": ["The Iron Thesis", "Waits for exceptional evidence, then holds conviction through market noise."],
+  "Patient & precise|Confidence+Market": ["The Quiet Warden", "Observes model and market confirmation before revealing a position."],
+  "Data-first|Confidence+Props": ["The Model Savant", "Connects projections, context, and player-level evidence with uncommon precision."],
+  "Data-first|Confidence+Value": ["The Quant Forger", "Turns disciplined modeling into repeatable, price-aware decisions."],
+  "Value-driven|Market+Value": ["The Closing-Line Hunter", "Pursues the number most likely to disappear before the market closes."],
+  "Value-driven|Props+Value": ["The Prop Smith", "Forges player-level projections into efficient, value-centered positions."],
+  "Contrarian|Market+Value": ["The Public Fade", "Finds opportunity where crowd behavior stretches the market beyond the evidence."],
+  "Contrarian|Confidence+Value": ["The Consensus Breaker", "Challenges popular positions only when the model creates a defensible alternative."],
+  "Momentum-aware|Market+Props": ["The Velocity Reader", "Reads player form and market acceleration before the trend becomes consensus."],
+  "Momentum-aware|Confidence+Props": ["The Form Oracle", "Balances recent performance with underlying projection quality."],
+  "High-upside explorer|Props+Value": ["The Ceiling Architect", "Constructs asymmetric positions around player upside and favorable price."],
+  "High-upside explorer|Market+Value": ["The Longshot Navigator", "Explores wider outcomes while staying anchored to market value."],
 };
 
 export function buildPlaystyleArchetype(input: PlaystyleInput): PlaystyleArchetype {
@@ -64,14 +82,8 @@ export function buildPlaystyleArchetype(input: PlaystyleInput): PlaystyleArchety
   const [secondary, secondaryScore] = ranked[1];
   const balanced = primaryScore - secondaryScore <= 3;
   const hybridKey = [primary, secondary].sort().join("+");
-  const special = input.style === "Contrarian"
-    ? ["The Contrarian Cipher", "Decodes where public conviction and model evidence quietly diverge."]
-    : input.style === "Momentum-aware"
-      ? ["The Momentum Seer", "Reads form and market velocity without losing sight of the underlying price."]
-      : input.style === "High-upside explorer"
-        ? ["The Upside Vanguard", "Explores wider outcomes where asymmetric upside justifies additional variance."]
-        : null;
-  const identity = special ?? (balanced ? ["The Adaptive Quant", "Blends model confidence, value, and market context as the slate changes."] : hybridNames[hybridKey]);
+  const styleKey = `${input.style ?? ""}|${hybridKey}`;
+  const identity = styleHybridNames[styleKey] ?? (balanced ? ["The Adaptive Quant", "Blends model confidence, value, and market context as the slate changes."] : hybridNames[hybridKey]);
   const hasTrait = (trait: string) => (input.traits ?? []).includes(trait);
   const score = (value: number) => Math.max(25, Math.min(99, Math.round(value)));
   const categoryRatings = {
@@ -88,5 +100,7 @@ export function buildPlaystyleArchetype(input: PlaystyleInput): PlaystyleArchety
     signature: `${primaryScore}% ${primary.toLowerCase()} signature`,
     dimensions,
     categoryRatings,
+    drivers: [input.style, ...(input.traits ?? []), input.goal].filter((value): value is string => Boolean(value)).slice(0, 3),
+    stage: "Origin profile",
   };
 }

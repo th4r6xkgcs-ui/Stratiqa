@@ -24,8 +24,19 @@ test("combines style and trust signals into a special hybrid identity", () => {
     leagueCount: 3,
     sportsbookCount: 4,
   });
-  assert.equal(result.name, "The Contrarian Cipher");
+  assert.equal(result.name, "The Public Fade");
   assert.ok(result.dimensions.Market > 20);
+});
+
+test("creates distinct identities from style and dimension combinations", () => {
+  const patient = buildPlaystyleArchetype({ goal: "Understand predictions", risk: "conservative", style: "Patient & precise", traits: ["Model confidence"], leagueCount: 1, sportsbookCount: 0 });
+  const data = buildPlaystyleArchetype({ goal: "Research player props", risk: "conservative", style: "Data-first", traits: ["Player trends"], leagueCount: 2, sportsbookCount: 1 });
+  const upside = buildPlaystyleArchetype({ goal: "Research player props", risk: "aggressive", style: "High-upside explorer", traits: ["Best available price"], leagueCount: 4, sportsbookCount: 2 });
+  assert.equal(patient.name, "The Iron Thesis");
+  assert.equal(data.name, "The Model Savant");
+  assert.equal(upside.name, "The Ceiling Architect");
+  assert.equal(patient.stage, "Origin profile");
+  assert.ok(patient.drivers.includes("Patient & precise"));
 });
 
 test("every profile produces calibrated category ratings", () => {
