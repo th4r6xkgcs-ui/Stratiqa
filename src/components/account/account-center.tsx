@@ -84,8 +84,9 @@ export function AccountCenter() {
     <div className="account-experience">
       <aside className="auth-story">
         <span className="landing-kicker"><Sparkles size={13} /> INTELLIGENCE, PERSONALIZED</span>
-        <h2>Your edge follows you.</h2>
-        <p>Sign in once to keep your model preferences, sportsbooks, and AI Coach context synchronized.</p>
+        <h2>Turn every slate into a decision.</h2>
+        <p>Your personalized intelligence workspace finds the signal, explains the edge, and keeps your market preferences synchronized.</p>
+        <div className="auth-signal-card"><span><i /> AI COACH · READY</span><strong>Today&apos;s strongest edge is waiting.</strong><small>Personalized analysis begins the moment you sign in.</small></div>
         <ul><li><Check /> Personalized opportunity ranking</li><li><Check /> Saved props and preferences</li><li><Check /> Secure cross-device access</li></ul>
         <div className="auth-trust"><ShieldCheck /><span><strong>Private by design</strong><small>Secure authentication and server-side preference storage.</small></span></div>
       </aside>
