@@ -30,12 +30,15 @@ export function normalizeOdds(games) {
           book: bookmaker.title,
           price: outcome.price,
           line: formatOutcome(outcome),
+          marketKey: market.key,
+          outcomeName: outcome.name,
+          point: outcome.point ?? null,
         }))),
     );
     const best = quotes.reduce(
       (current, quote) => !current || quote.price > current.price ? quote : current,
       null,
     );
-    return quotes.length ? [{ matchupId: `${away}-vs-${home}`, bestBook: best?.book ?? quotes[0].book, quotes }] : [];
+    return quotes.length ? [{ matchupId: `${away}-vs-${home}`, bestBook: best?.book ?? quotes[0].book, quotes, providerEventId: game.id, providerSportKey: game.sport_key, commenceTime: game.commence_time }] : [];
   });
 }

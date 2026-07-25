@@ -5,6 +5,7 @@ import { ConfidenceRing } from "@/components/ui/confidence-ring";
 import { Badge, Card } from "@/components/ui/primitives";
 import { ReasoningCard } from "@/components/intelligence/reasoning-card";
 import { StatMeter } from "@/components/intelligence/stat-meter";
+import { TrackPickButton } from "@/components/picks/track-pick-button";
 import { getMatchupIntelligence, getSupportedMatchupSlugs } from "@/services";
 
 export function generateStaticParams() {
@@ -26,6 +27,7 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
           <h1>{matchup.awayAbbr} <span>vs</span> {matchup.homeAbbr}</h1>
           <h2>{matchup.pick}</h2>
           <p className="ai-summary">{matchup.aiSummary}</p>
+          <TrackPickButton slug={slug} quotes={matchup.alternateLines} live={matchup.providerMode === "live" && Boolean(matchup.providerEventId)} />
         </div>
         <div className="intelligence-grade"><ConfidenceRing value={matchup.confidence} size="lg" label="Confidence" /><span>VALUE GRADE<strong>{matchup.valueGrade}</strong></span></div>
       </Card>

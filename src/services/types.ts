@@ -21,8 +21,8 @@ export type ProviderHealth = {
   stale: boolean;
 };
 
-export type SportsbookQuote = { book: string; price: number; line: string };
-export type OddsData = { matchupId: string; quotes: SportsbookQuote[]; bestBook: string };
+export type SportsbookQuote = { book: string; price: number; line: string; marketKey?: string; outcomeName?: string; point?: number | null };
+export type OddsData = { matchupId: string; quotes: SportsbookQuote[]; bestBook: string; providerEventId?: string; providerSportKey?: string; commenceTime?: string };
 export type WeatherData = { matchupId: string; summary: string; impact: number; temperature: number; windMph: number };
 export type InjuryData = { matchupId: string; team: string; player: string; status: string; impact: number }[];
 export type StandingData = { team: string; record: string; rank: number; form: string };
@@ -65,6 +65,10 @@ export type MatchupIntelligence = {
   recentForm: string;
   bestSportsbook: string;
   alternateLines: SportsbookQuote[];
+  providerEventId: string | null;
+  providerSportKey: string | null;
+  providerCommenceTime: string | null;
+  providerMode: "mock" | "live";
   market: LineMovementData;
   reasoning: Array<{ title: string; summary: string; detail: string; score: number }>;
 };

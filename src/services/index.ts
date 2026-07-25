@@ -66,6 +66,9 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
     bullpenEdge: resolvedStats.bullpenEdge, startingPitchingEdge: resolvedStats.starterEdge,
     recentForm: resolvedStats.recentForm, bestSportsbook: resolvedQuote.bestBook,
     alternateLines: resolvedQuote.quotes, market: resolvedMarket,
+    providerEventId: quote?.providerEventId ?? null, providerSportKey: quote?.providerSportKey ?? null,
+    providerCommenceTime: quote?.commenceTime ?? null,
+    providerMode: odds.mode,
     reasoning: [
       { title: "Pitching matchup", summary: `${resolvedStats.starterEdge > 10 ? "Material" : "Moderate"} starter advantage`, detail: `Park-adjusted starter projections create a ${resolvedStats.starterEdge.toFixed(1)}% edge after workload and platoon adjustments.`, score: resolvedStats.starterEdge },
       { title: "Bullpen leverage", summary: "Late-inning depth favors the model side", detail: `Rest, leverage usage, and reliever quality combine for a ${resolvedStats.bullpenEdge.toFixed(1)}% bullpen advantage.`, score: resolvedStats.bullpenEdge },

@@ -127,7 +127,7 @@ export function PickLedger() {
             const review = pick.result === "win" ? "Great pick" : pick.result === "loss" ? "Review the read" : pick.result === "push" ? "Even result" : "Waiting";
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
-              <div className="pick-result-copy"><small>{pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
+              <div className="pick-result-copy"><small>{pick.sport} · {pick.category.replace("_", " ")}{pick.modelName ? ` · ${pick.modelName}` : ""}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
               <div className="pick-result-review"><strong>{review}</strong><small>{verified ? "Verified result" : pick.verificationStatus === "pending" ? "Auto-settlement pending" : "Practice journal"}</small></div>
               <div className="pick-result-rating">{verified ? <><b>{pick.result === "win" ? "+" : pick.result === "loss" ? "−" : ""}{pick.result === "push" ? "0" : "—"}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;
