@@ -28,13 +28,18 @@ export function AccountCenter() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [profileGoal, setProfileGoal] = useState("Find the best value");
+  const [profileStyle, setProfileStyle] = useState("Data-first");
+  const [profileTraits, setProfileTraits] = useState<string[]>(["Model confidence"]);
   const passwordStrength = Math.min(3, Number(password.length >= 8) + Number(/[A-Z]/.test(password) && /[a-z]/.test(password)) + Number(/\d|[^a-z]/i.test(password)));
 
   useEffect(() => {
     const requestedSignup = new URLSearchParams(window.location.search).get("mode") === "signup";
     fetch("/api/auth/session").then((response) => response.json()).then(async ({ user: sessionUser }) => {
       if (requestedSignup) setAuthAction("signup");
-      setProfileGoal(savedOnboarding()?.goal ?? "Find the best value");
+      const onboarding = savedOnboarding();
+      setProfileGoal(onboarding?.goal ?? "Find the best value");
+      setProfileStyle(onboarding?.style ?? "Data-first");
+      setProfileTraits(onboarding?.traits ?? ["Model confidence"]);
       setUser(sessionUser);
       if (sessionUser) {
         const response = await fetch("/api/preferences");
@@ -116,7 +121,7 @@ export function AccountCenter() {
         {user ? <Card className="account-preferences">
           <header><span><UserRound size={17} /> Analyst preferences</span></header>
           <div>
-            <ArchetypeCard compact input={{ goal: profileGoal, risk: preferences.riskProfile, leagueCount: preferences.leagues.length, sportsbookCount: preferences.sportsbooks.length }} label="LIVE PLAYSTYLE" />
+            <ArchetypeCard compact input={{ goal: profileGoal, risk: preferences.riskProfile, style: profileStyle, traits: profileTraits, leagueCount: preferences.leagues.length, sportsbookCount: preferences.sportsbooks.length }} label="LIVE PLAYSTYLE" />
             <label>Recommendation style<select value={preferences.riskProfile} onChange={(event) => setPreferences({ ...preferences, riskProfile: event.target.value as UserPreferences["riskProfile"] })}><option value="conservative">More selective</option><option value="balanced">Balanced</option><option value="aggressive">More opportunities</option></select></label>
             <label>Maximum unit size<input type="number" min=".25" max="10" step=".25" value={preferences.maxUnitSize} onChange={(event) => setPreferences({ ...preferences, maxUnitSize: Number(event.target.value) })} /></label>
             <label>Leagues<input value={preferences.leagues.join(", ")} onChange={(event) => setPreferences({ ...preferences, leagues: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} /></label>
