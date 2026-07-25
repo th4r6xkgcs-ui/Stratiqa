@@ -22,7 +22,19 @@ export type OnboardingProfile = {
 export const onboardingStorageKey = "stratiqa.onboarding.v2";
 const initial: OnboardingProfile = { leagues: [], leaguesSkipped: false, sportsbooks: [], risk: "balanced", style: "Data-first", styles: ["Data-first"], traits: ["Model confidence"], goal: "Find the best value", goals: ["Find the best value"], responsible: false };
 const leagues = ["MLB", "NFL", "NBA", "NHL", "WNBA"];
-const sportsbooks = ["DraftKings", "FanDuel", "BetMGM", "Caesars", "bet365"];
+const sportsbooks = [
+  "DraftKings",
+  "FanDuel",
+  "BetMGM",
+  "Caesars",
+  "Fanatics",
+  "BetRivers",
+  "BetOnline",
+  "Bovada",
+  "MyBookie",
+  "BetUS",
+  "Other sportsbook",
+];
 const goals = [
   ["Find the best value", "Prioritize opportunities where model probability beats the market."],
   ["Research player props", "Surface player trends, projections, and high-value prop markets."],
