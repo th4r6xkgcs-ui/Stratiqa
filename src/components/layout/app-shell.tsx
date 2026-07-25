@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  ClipboardCheck,
   ChartNoAxesCombined,
   ChevronRight,
   Crown,
@@ -30,6 +31,7 @@ const navigation = [
   { label: "Teams", href: "/teams", icon: Shield },
   { label: "Players", href: "/players", icon: UserRound },
   { label: "Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
+  { label: "Pick Ledger", href: "/picks", icon: ClipboardCheck, badge: "V16" },
 ];
 
 const community = [
@@ -140,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="content">{children}</main>
         <footer className="system-footer">
           <div><span>Model Refresh: 17s ago</span><span>Odds Sync: 23s ago</span><span>Last Injury Feed: Just now</span></div>
-          <div><strong>STRATIQA v15.3</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
+          <div><strong>STRATIQA v16.2</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
     </div>
