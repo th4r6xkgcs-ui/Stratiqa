@@ -13,6 +13,7 @@ export function AccountCenter() {
   const [preferences, setPreferences] = useState(defaults);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const [authAction, setAuthAction] = useState<"login" | "signup">("login");
 
   useEffect(() => {
     fetch("/api/auth/session").then((response) => response.json()).then(async ({ user: sessionUser }) => {
@@ -27,11 +28,12 @@ export function AccountCenter() {
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), displayName: form.get("displayName") }) });
+    const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), displayName: form.get("displayName"), password: form.get("password"), action: authAction }) });
     const result = await response.json();
-    if (!response.ok) return setStatus(result.error);
+    if (!response.ok && response.status !== 202) return setStatus(result.error);
+    if (!result.user) return setStatus(result.message ?? "Check your email to finish creating your account.");
     setUser(result.user);
-    setStatus("Development session created securely.");
+    setStatus(authAction === "signup" ? "Account created and signed in." : "Signed in securely.");
   }
 
   async function save() {
@@ -51,13 +53,17 @@ export function AccountCenter() {
   return (
     <div className="account-grid">
       <Card className="account-identity glass-card">
-        <header><span><ShieldCheck size={17} /> Identity</span><Badge tone={user ? "success" : "warning"}>{user ? "Authenticated" : "Development mode"}</Badge></header>
+        <header><span><ShieldCheck size={17} /> Identity</span><Badge tone={user ? "success" : "warning"}>{user ? "Authenticated" : "Sign in required"}</Badge></header>
         {user ? <div className="account-user"><UserRound /><span><strong>{user.displayName}</strong><small>{user.email}</small><em>Analyst session · HTTP-only cookie</em></span><Button variant="secondary" onClick={logout}><LogOut size={15} /> Sign out</Button></div> : (
           <form onSubmit={login}>
-            <p>Create a local development session. Production environments require a configured session secret and external identity adapter.</p>
+            <p>{authAction === "signup" ? "Create your secure STRATIQA analyst account." : "Sign in to sync your preferences across devices."}</p>
             <label>Display name<input name="displayName" minLength={2} maxLength={40} required defaultValue="Heriberto" /></label>
             <label>Email<input name="email" type="email" required placeholder="you@example.com" /></label>
-            <Button><LogIn size={15} /> Continue securely</Button>
+            <label>Password<input name="password" type="password" minLength={8} required placeholder="8 or more characters" autoComplete={authAction === "signup" ? "new-password" : "current-password"} /></label>
+            <Button><LogIn size={15} /> {authAction === "signup" ? "Create account" : "Sign in"}</Button>
+            <Button type="button" variant="secondary" onClick={() => setAuthAction((value) => value === "login" ? "signup" : "login")}>
+              {authAction === "login" ? "Need an account?" : "Already have an account?"}
+            </Button>
           </form>
         )}
         {status ? <p className="account-status" role="status">{status}</p> : null}
