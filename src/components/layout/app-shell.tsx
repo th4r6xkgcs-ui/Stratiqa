@@ -79,7 +79,9 @@ function NavGroup({
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  if (pathname === "/" || pathname === "/onboarding") return <>{children}</>;
   return (
     <div className="app-shell">
       <button className="mobile-menu" onClick={() => setOpen((value) => !value)} aria-label="Toggle navigation">
