@@ -25,6 +25,11 @@ export function ArchetypeCard({ input, label = "LIVE ARCHETYPE", compact = false
       <div className="archetype-legend">
         {(Object.entries(archetype.dimensions) as Array<[string, number]>).map(([name, value]) => <span data-dimension={name.toLowerCase()} key={name}><i />{name}<b>{value}%</b></span>)}
       </div>
+      <div className="category-ratings">
+        <header><span>SKILL RATINGS</span><small>Playstyle calibration</small></header>
+        {Object.entries(archetype.categoryRatings).map(([name, value]) => <div key={name}><span><small>{name}</small><b>{value}</b></span><i><em style={{ width: `${value}%` }} /></i></div>)}
+      </div>
+      <p className="ranking-lock">Verified local and global ranks unlock after 25 graded picks.</p>
     </div>
   );
 }

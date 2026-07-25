@@ -13,15 +13,16 @@ export type PlaystyleArchetype = {
   description: string;
   signature: string;
   dimensions: Record<PlaystyleDimension, number>;
+  categoryRatings: Record<"Prop IQ" | "Value Detection" | "Market Timing" | "Model Discipline" | "Line Shopping" | "Slate Range", number>;
 };
 
 const hybridNames: Record<string, [string, string]> = {
-  "Confidence+Value": ["The Edge Architect", "Builds patiently where model agreement and mispriced probability intersect."],
-  "Market+Value": ["The Price Sniper", "Waits for the strongest number, then attacks the market inefficiency."],
-  "Props+Value": ["The Prop Alchemist", "Transforms player projections into focused expected-value opportunities."],
-  "Confidence+Market": ["The Market Sentinel", "Requires model conviction and market confirmation before moving."],
-  "Confidence+Props": ["The Projection Purist", "Trusts player-level evidence when the underlying model agrees."],
-  "Market+Props": ["The Lineup Cartographer", "Maps player markets across books to uncover hidden paths to value."],
+  "Confidence+Value": ["The Edge Forger", "Builds patiently where model agreement and mispriced probability intersect."],
+  "Market+Value": ["The Line Phantom", "Moves between prices and market shifts to strike before the edge disappears."],
+  "Props+Value": ["The Prop Savant", "Transforms player projections into focused expected-value opportunities."],
+  "Confidence+Market": ["The Market Warden", "Requires model conviction and market confirmation before moving."],
+  "Confidence+Props": ["The Projection Oracle", "Sees player-level outcomes through evidence, context, and model agreement."],
+  "Market+Props": ["The Slate Cartographer", "Maps player markets across books to uncover hidden paths to value."],
 };
 
 export function buildPlaystyleArchetype(input: PlaystyleInput): PlaystyleArchetype {
@@ -64,17 +65,28 @@ export function buildPlaystyleArchetype(input: PlaystyleInput): PlaystyleArchety
   const balanced = primaryScore - secondaryScore <= 3;
   const hybridKey = [primary, secondary].sort().join("+");
   const special = input.style === "Contrarian"
-    ? ["The Contrarian Oracle", "Looks beyond consensus to find where public conviction and model evidence diverge."]
+    ? ["The Contrarian Cipher", "Decodes where public conviction and model evidence quietly diverge."]
     : input.style === "Momentum-aware"
-      ? ["The Trend Surfer", "Reads form and market velocity without losing sight of the underlying price."]
+      ? ["The Momentum Seer", "Reads form and market velocity without losing sight of the underlying price."]
       : input.style === "High-upside explorer"
-        ? ["The Ceiling Chaser", "Explores wider outcomes where asymmetric upside justifies additional variance."]
+        ? ["The Upside Vanguard", "Explores wider outcomes where asymmetric upside justifies additional variance."]
         : null;
-  const identity = special ?? (balanced ? ["The Adaptive Sharp", "Blends model confidence, value, and market context as the slate changes."] : hybridNames[hybridKey]);
+  const identity = special ?? (balanced ? ["The Adaptive Quant", "Blends model confidence, value, and market context as the slate changes."] : hybridNames[hybridKey]);
+  const hasTrait = (trait: string) => (input.traits ?? []).includes(trait);
+  const score = (value: number) => Math.max(25, Math.min(99, Math.round(value)));
+  const categoryRatings = {
+    "Prop IQ": score(34 + dimensions.Props * .72 + input.leagueCount * 3 + (hasTrait("Player trends") ? 13 : 0)),
+    "Value Detection": score(35 + dimensions.Value * .78 + (hasTrait("Best available price") ? 14 : 0)),
+    "Market Timing": score(32 + dimensions.Market * .76 + (hasTrait("Market movement") ? 15 : 0) + (input.style === "Momentum-aware" ? 8 : 0)),
+    "Model Discipline": score(36 + dimensions.Confidence * .72 + (hasTrait("Model confidence") ? 14 : 0) + (input.style === "Patient & precise" ? 8 : 0)),
+    "Line Shopping": score(30 + input.sportsbookCount * 8 + dimensions.Market * .45 + (hasTrait("Best available price") ? 11 : 0)),
+    "Slate Range": score(32 + input.leagueCount * 9 + (input.style === "High-upside explorer" ? 12 : 0) + (input.style === "Data-first" ? 5 : 0)),
+  };
   return {
     name: identity[0],
     description: identity[1],
     signature: `${primaryScore}% ${primary.toLowerCase()} signature`,
     dimensions,
+    categoryRatings,
   };
 }
