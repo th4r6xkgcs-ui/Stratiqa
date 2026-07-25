@@ -11,6 +11,10 @@ test("normalizes a valid identity request", () => {
 
 test("rejects malformed email and display names", () => {
   assert.equal(validateLogin({ email: "bad", displayName: "H" }).ok, false);
-  assert.equal(validateLogin({ email: "user@example.com", displayName: "x".repeat(41) }).ok, false);
+  assert.equal(validateLogin({ email: "user@example.com", displayName: "x".repeat(41), action: "signup" }).ok, false);
   assert.equal(validateLogin({ email: "user@example.com", displayName: "User", password: "short" }).ok, false);
+});
+
+test("allows returning users to sign in without a display name", () => {
+  assert.equal(validateLogin({ email: "user@example.com", displayName: "", password: "securepass", action: "login" }).ok, true);
 });

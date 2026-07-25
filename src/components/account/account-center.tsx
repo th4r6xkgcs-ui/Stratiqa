@@ -1,12 +1,22 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { LogIn, LogOut, Save, ShieldCheck, UserRound } from "lucide-react";
+import { Check, Eye, EyeOff, LockKeyhole, LogIn, LogOut, Save, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
+import { onboardingStorageKey, type OnboardingProfile } from "@/components/onboarding/onboarding-flow";
 import type { SessionUser } from "@/lib/auth/session";
 import type { UserPreferences } from "@/repositories/preferences";
 
 const defaults: UserPreferences = { riskProfile: "balanced", leagues: ["MLB"], sportsbooks: ["DraftKings", "FanDuel"], maxUnitSize: 1 };
+
+function savedOnboarding(): OnboardingProfile | null {
+  try {
+    const value = localStorage.getItem(onboardingStorageKey);
+    return value ? JSON.parse(value) as OnboardingProfile : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AccountCenter() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -14,9 +24,14 @@ export function AccountCenter() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [authAction, setAuthAction] = useState<"login" | "signup">("login");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordStrength = Math.min(3, Number(password.length >= 8) + Number(/[A-Z]/.test(password) && /[a-z]/.test(password)) + Number(/\d|[^a-z]/i.test(password)));
 
   useEffect(() => {
+    const requestedSignup = new URLSearchParams(window.location.search).get("mode") === "signup";
     fetch("/api/auth/session").then((response) => response.json()).then(async ({ user: sessionUser }) => {
+      if (requestedSignup) setAuthAction("signup");
       setUser(sessionUser);
       if (sessionUser) {
         const response = await fetch("/api/preferences");
@@ -25,15 +40,30 @@ export function AccountCenter() {
     }).finally(() => setLoading(false));
   }, []);
 
+  async function syncOnboarding() {
+    const profile = savedOnboarding();
+    if (!profile) return;
+    const personalized: UserPreferences = {
+      riskProfile: profile.risk,
+      leagues: profile.leagues.length ? profile.leagues : defaults.leagues,
+      sportsbooks: profile.sportsbooks,
+      maxUnitSize: 1,
+    };
+    const response = await fetch("/api/preferences", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(personalized) });
+    if (response.ok) setPreferences(personalized);
+  }
+
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus(authAction === "signup" ? "Creating your workspace…" : "Signing you in…");
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), displayName: form.get("displayName"), password: form.get("password"), action: authAction }) });
     const result = await response.json();
     if (!response.ok && response.status !== 202) return setStatus(result.error);
     if (!result.user) return setStatus(result.message ?? "Check your email to finish creating your account.");
     setUser(result.user);
-    setStatus(authAction === "signup" ? "Account created and signed in." : "Signed in securely.");
+    await syncOnboarding();
+    setStatus(authAction === "signup" ? "Welcome to STRATIQA. Your workspace is personalized." : "Welcome back.");
   }
 
   async function save() {
@@ -48,38 +78,48 @@ export function AccountCenter() {
     setStatus("Signed out.");
   }
 
-  if (loading) return <Card className="account-loading">Loading account…</Card>;
+  if (loading) return <Card className="account-loading">Preparing your workspace…</Card>;
 
   return (
-    <div className="account-grid">
-      <Card className="account-identity glass-card">
-        <header><span><ShieldCheck size={17} /> Identity</span><Badge tone={user ? "success" : "warning"}>{user ? "Authenticated" : "Sign in required"}</Badge></header>
-        {user ? <div className="account-user"><UserRound /><span><strong>{user.displayName}</strong><small>{user.email}</small><em>Analyst session · HTTP-only cookie</em></span><Button variant="secondary" onClick={logout}><LogOut size={15} /> Sign out</Button></div> : (
-          <form onSubmit={login}>
-            <p>{authAction === "signup" ? "Create your secure STRATIQA analyst account." : "Sign in to sync your preferences across devices."}</p>
-            <label>Display name<input name="displayName" minLength={2} maxLength={40} required defaultValue="Heriberto" /></label>
-            <label>Email<input name="email" type="email" required placeholder="you@example.com" /></label>
-            <label>Password<input name="password" type="password" minLength={8} required placeholder="8 or more characters" autoComplete={authAction === "signup" ? "new-password" : "current-password"} /></label>
-            <Button><LogIn size={15} /> {authAction === "signup" ? "Create account" : "Sign in"}</Button>
-            <Button type="button" variant="secondary" onClick={() => setAuthAction((value) => value === "login" ? "signup" : "login")}>
-              {authAction === "login" ? "Need an account?" : "Already have an account?"}
-            </Button>
-          </form>
-        )}
-        {status ? <p className="account-status" role="status">{status}</p> : null}
-      </Card>
+    <div className="account-experience">
+      <aside className="auth-story">
+        <span className="landing-kicker"><Sparkles size={13} /> INTELLIGENCE, PERSONALIZED</span>
+        <h2>Your edge follows you.</h2>
+        <p>Sign in once to keep your model preferences, sportsbooks, and AI Coach context synchronized.</p>
+        <ul><li><Check /> Personalized opportunity ranking</li><li><Check /> Saved props and preferences</li><li><Check /> Secure cross-device access</li></ul>
+        <div className="auth-trust"><ShieldCheck /><span><strong>Private by design</strong><small>Secure authentication and server-side preference storage.</small></span></div>
+      </aside>
+      <div className="account-grid">
+        <Card className="account-identity glass-card">
+          <header><span><LockKeyhole size={17} /> {user ? "Your account" : "Welcome to STRATIQA"}</span><Badge tone={user ? "success" : "accent"}>{user ? "Authenticated" : "Secure access"}</Badge></header>
+          {user ? <div className="account-user"><UserRound /><span><strong>{user.displayName}</strong><small>{user.email}</small><em>Analyst workspace · synchronized</em></span><Button variant="secondary" onClick={logout}><LogOut size={15} /> Sign out</Button></div> : (
+            <>
+              <div className="auth-tabs"><button className={authAction === "login" ? "active" : ""} onClick={() => setAuthAction("login")}>Sign in</button><button className={authAction === "signup" ? "active" : ""} onClick={() => setAuthAction("signup")}>Create account</button></div>
+              <form onSubmit={login}>
+                <div className="auth-heading"><h3>{authAction === "signup" ? "Create your analyst workspace" : "Welcome back"}</h3><p>{authAction === "signup" ? "Your onboarding choices will be applied automatically." : "Continue where you left off."}</p></div>
+                {authAction === "signup" ? <label>Display name<input name="displayName" minLength={2} maxLength={40} required placeholder="How should we address you?" autoComplete="name" /></label> : <input name="displayName" value="" type="hidden" readOnly />}
+                <label>Email address<input name="email" type="email" required placeholder="you@example.com" autoComplete="email" /></label>
+                <label>Password<span className="password-field"><input name="password" type={showPassword ? "text" : "password"} minLength={8} required placeholder="8 or more characters" autoComplete={authAction === "signup" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff /> : <Eye />}</button></span></label>
+                {authAction === "signup" ? <div className="password-strength"><span><i className={passwordStrength > 0 ? "active" : ""} /><i className={passwordStrength > 1 ? "active" : ""} /><i className={passwordStrength > 2 ? "active" : ""} /></span><small>{passwordStrength < 2 ? "Use 8+ characters with mixed letters and a number." : passwordStrength === 2 ? "Good password" : "Strong password"}</small></div> : null}
+                <Button className="auth-submit"><LogIn size={15} /> {authAction === "signup" ? "Create my workspace" : "Sign in securely"}</Button>
+                <small className="auth-legal">By continuing, you agree to responsible use of analytical decision support.</small>
+              </form>
+            </>
+          )}
+          {status ? <p className="account-status" role="status">{status}</p> : null}
+        </Card>
 
-      <Card className="account-preferences">
-        <header><span><UserRound size={17} /> Analyst preferences</span></header>
-        <div>
-          <label>Risk profile<select value={preferences.riskProfile} onChange={(event) => setPreferences({ ...preferences, riskProfile: event.target.value as UserPreferences["riskProfile"] })}><option value="conservative">Conservative</option><option value="balanced">Balanced</option><option value="aggressive">Aggressive</option></select></label>
-          <label>Maximum unit size<input type="number" min=".25" max="10" step=".25" value={preferences.maxUnitSize} onChange={(event) => setPreferences({ ...preferences, maxUnitSize: Number(event.target.value) })} /></label>
-          <label>Leagues<input value={preferences.leagues.join(", ")} onChange={(event) => setPreferences({ ...preferences, leagues: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} /></label>
-          <label>Sportsbooks<input value={preferences.sportsbooks.join(", ")} onChange={(event) => setPreferences({ ...preferences, sportsbooks: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} /></label>
-          <Button disabled={!user} onClick={save}><Save size={15} /> Save preferences</Button>
-          {!user ? <small>Sign in to enable server-side preference storage.</small> : null}
-        </div>
-      </Card>
+        {user ? <Card className="account-preferences">
+          <header><span><UserRound size={17} /> Analyst preferences</span></header>
+          <div>
+            <label>Recommendation style<select value={preferences.riskProfile} onChange={(event) => setPreferences({ ...preferences, riskProfile: event.target.value as UserPreferences["riskProfile"] })}><option value="conservative">More selective</option><option value="balanced">Balanced</option><option value="aggressive">More opportunities</option></select></label>
+            <label>Maximum unit size<input type="number" min=".25" max="10" step=".25" value={preferences.maxUnitSize} onChange={(event) => setPreferences({ ...preferences, maxUnitSize: Number(event.target.value) })} /></label>
+            <label>Leagues<input value={preferences.leagues.join(", ")} onChange={(event) => setPreferences({ ...preferences, leagues: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} /></label>
+            <label>Sportsbooks<input value={preferences.sportsbooks.join(", ")} onChange={(event) => setPreferences({ ...preferences, sportsbooks: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} /></label>
+            <Button onClick={save}><Save size={15} /> Save preferences</Button>
+          </div>
+        </Card> : null}
+      </div>
     </div>
   );
 }

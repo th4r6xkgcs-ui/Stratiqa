@@ -23,7 +23,8 @@ export async function POST(request: Request) {
       await createSession(auth.user);
       return Response.json({ user: auth.user });
     }
-    const { email, displayName } = result.value;
+    const { email } = result.value;
+    const displayName = result.value.displayName || email.split("@")[0];
     const user = { id: createHash("sha256").update(email).digest("hex").slice(0, 16), email, displayName, role: "analyst" as const };
     await createSession(user);
     return Response.json({ user });
