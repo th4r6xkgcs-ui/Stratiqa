@@ -1,7 +1,7 @@
 import "server-only";
 import { MockInjuriesProvider } from "./injuries-provider";
 import { MockLineMovementProvider } from "./line-movement-provider";
-import { MockOddsProvider } from "./odds-provider";
+import { LiveOddsProvider, MockOddsProvider } from "./odds-provider";
 import { MockPropsProvider } from "./props-provider";
 import { MockStandingsProvider } from "./standings-provider";
 import { MockStatsProvider } from "./stats-provider";
@@ -10,8 +10,13 @@ import { ResilientProvider } from "./runtime";
 import { getProviderEnvironment } from "./environment";
 import type { MatchupIntelligence, ProviderHealth } from "./types";
 
+const environment = getProviderEnvironment();
+const oddsSource = environment.mode === "live"
+  ? new LiveOddsProvider(process.env.STRATIQA_ODDS_API_KEY!)
+  : new MockOddsProvider();
+
 export const providers = {
-  odds: new ResilientProvider("odds", new MockOddsProvider()),
+  odds: new ResilientProvider("odds", oddsSource),
   weather: new ResilientProvider("weather", new MockWeatherProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
   injuries: new ResilientProvider("injuries", new MockInjuriesProvider()),
   standings: new ResilientProvider("standings", new MockStandingsProvider(), { ttlMs: 300_000, staleMs: 1_800_000, retries: 2 }),
