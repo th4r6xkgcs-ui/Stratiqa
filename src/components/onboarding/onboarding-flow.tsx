@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, Sparkles } from "lucide-react";
 import { usePersistentState } from "@/hooks/use-persistent-state";
+import { ArchetypeCard } from "@/components/profile/archetype-card";
 
 export type OnboardingProfile = {
   leagues: string[];
@@ -57,8 +58,7 @@ export function OnboardingFlow() {
             {step === 4 ? <section className="onboarding-ready"><Sparkles /><span className="landing-kicker">YOUR EDGE IS ONLINE</span><h1>Meet your STRATIQA.</h1><p>{profile.leagues.length ? profile.leagues.join(", ") : "Best available leagues"} · {styles.find(([value]) => value === profile.risk)?.[1]} · {profile.goal}</p><div className="onboarding-preview"><span>AI COACH IS PRIMED FOR</span><strong>{profile.goal}</strong><small>Your first personalized slate is waiting.</small></div><label><input type="checkbox" checked={profile.responsible} onChange={(event) => setProfile({ ...profile, responsible: event.target.checked })} /><span><ShieldCheck /> I understand STRATIQA provides analytical decision support, not guaranteed outcomes.</span></label></section> : null}
           </div>
           {step < 4 ? <aside className="profile-live">
-            <div className="profile-live-head"><span><i /> LIVE PROFILE</span><b>{Math.max(20, (step + 1) * 20)}% tuned</b></div>
-            <div className="profile-orbit"><Sparkles /><span>YOUR EDGE</span><strong>{profile.risk === "conservative" ? "SELECTIVE" : profile.risk === "aggressive" ? "EXPANSIVE" : "BALANCED"}</strong></div>
+            <ArchetypeCard input={{ goal: profile.goal, risk: profile.risk, leagueCount: profile.leagues.length, sportsbookCount: profile.sportsbooks.length }} label={`${Math.max(20, (step + 1) * 20)}% TUNED`} />
             <dl>
               <div><dt>Markets</dt><dd>{profile.leagues.length ? profile.leagues.slice(0, 3).join(" · ") : "Best available"}</dd></div>
               <div><dt>AI Coach focus</dt><dd>{profile.goal}</dd></div>
