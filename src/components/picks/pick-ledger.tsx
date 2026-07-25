@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
-import type { TrackedPick } from "@/repositories/picks";
+import type { CategoryRating, TrackedPick } from "@/repositories/picks";
 
 const categories = [
   ["player_prop", "Player prop"], ["moneyline", "Moneyline"], ["spread", "Spread"],
@@ -13,10 +13,10 @@ const categories = [
 const sportsbooks = ["DraftKings", "FanDuel", "BetMGM", "Caesars", "Fanatics", "BetRivers", "BetOnline", "Bovada", "MyBookie", "BetUS", "Other"];
 const ranks = [
   { name: "Rookie", floor: 0, color: "#7d8b96" },
-  { name: "Scout", floor: 1100, color: "#54b7e8" },
-  { name: "Strategist", floor: 1300, color: "#a66cff" },
-  { name: "Sharp", floor: 1500, color: "#2ecc55" },
-  { name: "Expert", floor: 1750, color: "#ffb84d" },
+  { name: "Scout", floor: 1200, color: "#54b7e8" },
+  { name: "Strategist", floor: 1450, color: "#a66cff" },
+  { name: "Sharp", floor: 1650, color: "#2ecc55" },
+  { name: "Expert", floor: 1850, color: "#ffb84d" },
   { name: "Elite", floor: 2000, color: "#ff6e76" },
   { name: "Grandmaster", floor: 2250, color: "#ffd75f" },
 ];
@@ -28,11 +28,12 @@ function ratingFromPicks(picks: TrackedPick[]) {
       if (pick.result === "push") return rating;
       const expected = pick.americanOdds > 0 ? 100 / (pick.americanOdds + 100) : Math.abs(pick.americanOdds) / (Math.abs(pick.americanOdds) + 100);
       return rating + 28 * ((pick.result === "win" ? 1 : 0) - expected);
-    }, 1200));
+    }, 1500));
 }
 
 export function PickLedger() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
+  const [ratings, setRatings] = useState<CategoryRating[]>([]);
   const [status, setStatus] = useState("Loading your picks…");
   const [signedIn, setSignedIn] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,7 @@ export function PickLedger() {
         }
         if (!response.ok) return setStatus(result.error);
         setPicks(result.picks);
+        setRatings(result.ratings ?? []);
         setStatus(result.picks.length ? "" : "Your first pick is waiting.");
       })
       .catch(() => setStatus("Your picks could not be loaded. Please try again."));
@@ -57,7 +59,10 @@ export function PickLedger() {
     const verified = picks.filter((pick) => pick.verificationStatus === "verified" && pick.result !== "pending");
     const wins = verified.filter((pick) => pick.result === "win").length;
     const decisions = verified.filter((pick) => pick.result === "win" || pick.result === "loss").length;
-    const rating = ratingFromPicks(picks);
+    const ratedSamples = ratings.reduce((sum, item) => sum + item.gradedPicks, 0);
+    const rating = ratedSamples
+      ? Math.round(ratings.reduce((sum, item) => sum + item.rating * item.gradedPicks, 0) / ratedSamples)
+      : ratingFromPicks(picks);
     const rankIndex = ranks.findLastIndex((rank) => rating >= rank.floor);
     const rank = ranks[Math.max(0, rankIndex)];
     const next = ranks[Math.min(ranks.length - 1, rankIndex + 1)];
@@ -65,7 +70,7 @@ export function PickLedger() {
     const profit = verified.reduce((sum, pick) => sum + (pick.profitUnits ?? 0), 0);
     const stake = verified.reduce((sum, pick) => sum + pick.stakeUnits, 0);
     return { verified: verified.length, wins, decisions, rating, rank, next, progress, profit, roi: stake ? profit / stake * 100 : 0 };
-  }, [picks]);
+  }, [picks, ratings]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

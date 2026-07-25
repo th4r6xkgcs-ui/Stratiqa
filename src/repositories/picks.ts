@@ -10,9 +10,11 @@ export type TrackedPick = {
   placedAt: string; gradedAt: string | null;
 };
 export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "placedAt" | "gradedAt">;
+export type CategoryRating = { category: string; rating: number; gradedPicks: number };
 
 interface PicksRepository {
   list(userId: string): Promise<TrackedPick[]>;
+  listRatings(userId: string): Promise<CategoryRating[]>;
   create(userId: string, pick: NewPick): Promise<TrackedPick>;
   grade(userId: string, id: string, result: Exclude<PickResult, "pending">, closingOdds: number | null, profitUnits: number): Promise<TrackedPick | null>;
   listPendingProvider(): Promise<TrackedPick[]>;
@@ -23,6 +25,7 @@ const developmentStore = new Map<string, TrackedPick[]>();
 
 class DevelopmentPicksRepository implements PicksRepository {
   async list(userId: string) { return developmentStore.get(userId) ?? []; }
+  async listRatings() { return []; }
   async create(userId: string, pick: NewPick) {
     const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
@@ -70,6 +73,13 @@ class SupabasePicksRepository implements PicksRepository {
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity?user_id=eq.${encodeURIComponent(userId)}&select=*&order=placed_at.desc&limit=250`, { headers: this.headers(), cache: "no-store", signal: AbortSignal.timeout(8_000) });
     if (!response.ok) throw new Error(`Pick storage responded with ${response.status}`);
     return (await response.json() as PickRow[]).map(fromRow);
+  }
+  async listRatings(userId: string) {
+    const response = await fetch(`${this.url}/rest/v1/category_ratings?user_id=eq.${encodeURIComponent(userId)}&select=category,rating,graded_picks`, { headers: this.headers(), cache: "no-store", signal: AbortSignal.timeout(8_000) });
+    if (!response.ok) throw new Error(`Rating storage responded with ${response.status}`);
+    return (await response.json() as Array<{ category: string; rating: number; graded_picks: number }>).map((row) => ({
+      category: row.category, rating: Number(row.rating), gradedPicks: row.graded_picks,
+    }));
   }
   async create(userId: string, pick: NewPick) {
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity`, {
