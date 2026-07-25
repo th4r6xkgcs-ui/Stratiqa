@@ -31,7 +31,7 @@ const navigation = [
   { label: "Teams", href: "/teams", icon: Shield },
   { label: "Players", href: "/players", icon: UserRound },
   { label: "Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
-  { label: "Pick Ledger", href: "/picks", icon: ClipboardCheck, badge: "V16" },
+  { label: "My Picks", href: "/picks", icon: ClipboardCheck, badge: "PLAY" },
 ];
 
 const community = [
