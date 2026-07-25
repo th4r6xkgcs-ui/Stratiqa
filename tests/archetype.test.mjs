@@ -12,7 +12,7 @@ test("changes archetype as playstyle preferences change", () => {
   const selective = buildPlaystyleArchetype({ goal: "Understand predictions", risk: "conservative", leagueCount: 1, sportsbookCount: 0 });
   const market = buildPlaystyleArchetype({ goal: "Compare sportsbook lines", risk: "balanced", leagueCount: 1, sportsbookCount: 5 });
   assert.equal(selective.name, "The Edge Forger");
-  assert.equal(market.name, "The Line Phantom");
+  assert.equal(market.name, "The Market Warden");
 });
 
 test("combines style and trust signals into a special hybrid identity", () => {
@@ -44,4 +44,20 @@ test("every profile produces calibrated category ratings", () => {
   assert.equal(Object.keys(result.categoryRatings).length, 6);
   assert.ok(result.categoryRatings["Prop IQ"] > result.categoryRatings["Market Timing"]);
   assert.ok(Object.values(result.categoryRatings).every((rating) => rating >= 25 && rating <= 99));
+});
+
+test("blends multiple objectives and playstyles into a wider identity", () => {
+  const result = buildPlaystyleArchetype({
+    goal: "Find the best value",
+    goals: ["Find the best value", "Find upset opportunities", "Manage risk and discipline"],
+    risk: "balanced",
+    style: "Patient & precise",
+    styles: ["Patient & precise", "Contrarian"],
+    traits: ["Model confidence", "Contrarian signals"],
+    leagueCount: 3,
+    sportsbookCount: 2,
+  });
+  assert.equal(result.name, "The Silent Rebel");
+  assert.ok(result.drivers.includes("Contrarian"));
+  assert.equal(Object.values(result.dimensions).reduce((sum, value) => sum + value, 0), 100);
 });
