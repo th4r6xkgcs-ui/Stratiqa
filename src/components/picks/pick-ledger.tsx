@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
-import type { CategoryRating, TrackedCard, TrackedPick } from "@/repositories/picks";
+import type { CategoryRating, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
 
 const categories = [
   ["player_prop", "Player prop"], ["moneyline", "Moneyline"], ["spread", "Spread"],
@@ -43,6 +43,7 @@ export function PickLedger() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
   const [ratings, setRatings] = useState<CategoryRating[]>([]);
   const [cards, setCards] = useState<TrackedCard[]>([]);
+  const [settlementAudit, setSettlementAudit] = useState<SettlementAudit[]>([]);
   const [status, setStatus] = useState("Loading your picks…");
   const [signedIn, setSignedIn] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,6 +61,7 @@ export function PickLedger() {
         setPicks(result.picks);
         setRatings(result.ratings ?? []);
         setCards(result.cards ?? []);
+        setSettlementAudit(result.settlementAudit ?? []);
         setStatus(result.picks.length ? "" : "Your first pick is waiting.");
       })
       .catch(() => setStatus("Your picks could not be loaded. Please try again."));
@@ -150,9 +152,10 @@ export function PickLedger() {
             const certified = pick.certificationStatus === "certified";
             const verified = pick.source === "provider" && pick.verificationStatus === "verified";
             const rating = ratingReview(pick);
+            const audit = settlementAudit.filter((entry) => entry.pickId === pick.id);
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
-              <div className="pick-result-copy"><small>My pick{pick.modelName ? ` · Analyzed by ${pick.modelName} v${pick.modelVersion ?? 1}` : ""} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
+              <div className="pick-result-copy"><small>My pick{pick.modelName ? ` · Analyzed by ${pick.modelName} v${pick.modelVersion ?? 1}` : ""} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p>{audit.length ? <details className="settlement-details"><summary>Official result details <ChevronDown /></summary>{audit.map((entry) => <span key={entry.id}><b>{entry.previousResult && entry.previousResult !== entry.result ? `${entry.previousResult.toUpperCase()} → ` : ""}{entry.result.toUpperCase()}</b><small>{entry.reason ?? entry.provider}{entry.revision ? ` · Revision ${entry.revision}` : ""}</small><time>{new Date(entry.createdAt).toLocaleString()}</time></span>)}</details> : null}</div>
               <div className="pick-result-review"><strong>{certified ? "Sportsbook confirmed" : pick.certificationStatus === "evidence_pending" ? "Proof pending" : verified ? "STRATIQA settled" : pick.category === "player_prop" ? "Waiting for official stats" : "Awaiting result"}</strong><small>{pick.settlementReason ?? (verified ? rating.detail : "Automatic result pending")}</small></div>
               <div className="pick-result-rating">{verified ? <><b>{rating.impact}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;

@@ -12,7 +12,10 @@ async function settlePicks(request: Request) {
   const apiKey = process.env.STRATIQA_ODDS_API_KEY;
   if (!apiKey) return Response.json({ error: "Results provider is not configured." }, { status: 503 });
 
-  const pending = await picksRepository.listPendingProvider();
+  const [pending, recentSettledProps] = await Promise.all([
+    picksRepository.listPendingProvider(),
+    picksRepository.listRecentSettledProps(),
+  ]);
   const gameMarkets = pending.filter((pick) => ["h2h", "spreads", "totals"].includes(pick.marketKey ?? ""));
   const bySport = new Map<string, typeof gameMarkets>();
   for (const pick of gameMarkets) {
@@ -34,7 +37,10 @@ async function settlePicks(request: Request) {
     }
   }
 
-  const props = pending.filter((pick) => !["h2h", "spreads", "totals"].includes(pick.marketKey ?? ""));
+  const props = [
+    ...pending.filter((pick) => !["h2h", "spreads", "totals"].includes(pick.marketKey ?? "")),
+    ...recentSettledProps,
+  ];
   let propProviderError: string | null = null;
   if (props.length) {
     try {
@@ -56,12 +62,17 @@ async function settlePicks(request: Request) {
           const settlement = settlePlayerProp(pick, stat);
           if (settlement.result === "pending") continue;
           const profit = profitForResult(pick.americanOdds, pick.stakeUnits, settlement.result);
-          if (await picksRepository.settleProvider(pick.id, settlement.result, profit, {
+          const metadata = {
             provider: `player-stats:${sportKey}`,
             reason: settlement.reason,
             statValue: settlement.actual,
             revision: stat.revision,
-          })) settledProps += 1;
+          };
+          if (pick.verificationStatus === "pending") {
+            if (await picksRepository.settleProvider(pick.id, settlement.result, profit, metadata)) settledProps += 1;
+          } else if (stat.revision && stat.revision !== pick.settlementRevision) {
+            if (await picksRepository.reviseProvider(pick.id, settlement.result, profit, { ...metadata, revision: stat.revision })) settledProps += 1;
+          }
         }
       }
     } catch (error) {
