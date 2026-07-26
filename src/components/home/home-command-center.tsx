@@ -5,13 +5,13 @@ import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUp, Bell, BrainCircuit, Check, Clock3, Crown, LockKeyhole, Search, ShieldCheck, Sparkles, Target, Trophy, X } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 import { buildSettlementFeed } from "@/lib/notifications/settlement-feed.js";
+import { competitiveStanding } from "@/lib/ratings/competitive-ranks.js";
 import type { CategoryRating, PickRatingImpact, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
 import type { ManagedModel } from "@/components/models/model-command-center";
 
 type Profile = { public_alias?: string; public_slug?: string; leaderboard_opt_in?: boolean };
 type Feed = { id: string; tone: "win" | "loss" | "info"; title: string; detail: string; href: string };
 const labels: Record<string, string> = { player_prop: "Player Props", moneyline: "Moneylines", spread: "Spreads", total: "Totals", parlay: "Parlays", live: "Live Markets" };
-const ranks = [{ name: "Rookie", floor: 0 }, { name: "Scout", floor: 1200 }, { name: "Strategist", floor: 1450 }, { name: "Sharp", floor: 1650 }, { name: "Expert", floor: 1850 }, { name: "Elite", floor: 2000 }, { name: "Grandmaster", floor: 2250 }];
 
 export function HomeCommandCenter() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
@@ -56,10 +56,7 @@ export function HomeCommandCenter() {
   const summary = useMemo(() => {
     const samples = ratings.reduce((sum, item) => sum + item.gradedPicks, 0);
     const rating = samples ? Math.round(ratings.reduce((sum, item) => sum + item.rating * item.gradedPicks, 0) / samples) : 1500;
-    const rankIndex = Math.max(0, ranks.findLastIndex((rank) => rating >= rank.floor));
-    const rank = ranks[rankIndex];
-    const next = ranks[Math.min(ranks.length - 1, rankIndex + 1)];
-    const progress = next === rank ? 100 : Math.max(0, Math.min(100, (rating - rank.floor) / (next.floor - rank.floor) * 100));
+    const standing = competitiveStanding(rating, samples);
     const strongest = [...ratings].sort((a, b) => b.rating - a.rating)[0];
     const bestModel = [...models].filter((model) => model.status !== "retired").sort((a, b) => b.performance.rating - a.performance.rating)[0];
     const pending = picks.filter((pick) => pick.source === "provider" && pick.result === "pending");
@@ -67,7 +64,7 @@ export function HomeCommandCenter() {
     const settled = picks.filter((pick) => pick.source === "provider" && ["win", "loss", "push"].includes(pick.result));
     const decisions = settled.filter((pick) => pick.result !== "push");
     const wins = decisions.filter((pick) => pick.result === "win").length;
-    return { rating, rank, next, progress, strongest, bestModel, pending, recent, settled, accuracy: decisions.length ? wins / decisions.length * 100 : null };
+    return { rating, rank: standing.tier, next: standing.nextTier, progress: standing.tierProgress, strongest, bestModel, pending, recent, settled, accuracy: decisions.length ? wins / decisions.length * 100 : null };
   }, [models, picks, ratings]);
 
   const feed = useMemo<Feed[]>(() => {

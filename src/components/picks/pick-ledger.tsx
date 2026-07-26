@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, BarChart3, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { ratingImpactExplanation } from "@/lib/notifications/settlement-feed.js";
+import { competitiveStanding } from "@/lib/ratings/competitive-ranks.js";
 import type { CategoryRating, PickRatingImpact, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
 
 const categories = [
@@ -12,15 +13,6 @@ const categories = [
   ["total", "Total"], ["parlay", "Parlay"], ["live", "Live market"],
 ];
 const sportsbooks = ["DraftKings", "FanDuel", "BetMGM", "Caesars", "Fanatics", "BetRivers", "BetOnline", "Bovada", "MyBookie", "BetUS", "Other"];
-const ranks = [
-  { name: "Rookie", floor: 0, color: "#7d8b96" },
-  { name: "Scout", floor: 1200, color: "#54b7e8" },
-  { name: "Strategist", floor: 1450, color: "#a66cff" },
-  { name: "Sharp", floor: 1650, color: "#2ecc55" },
-  { name: "Expert", floor: 1850, color: "#ffb84d" },
-  { name: "Elite", floor: 2000, color: "#ff6e76" },
-  { name: "Grandmaster", floor: 2250, color: "#ffd75f" },
-];
 const categoryNames: Record<string, string> = {
   player_prop: "Player Props",
   moneyline: "Moneylines",
@@ -87,10 +79,10 @@ export function PickLedger() {
     const rating = ratedSamples
       ? Math.round(ratings.reduce((sum, item) => sum + item.rating * item.gradedPicks, 0) / ratedSamples)
       : ratingFromPicks(picks);
-    const rankIndex = ranks.findLastIndex((rank) => rating >= rank.floor);
-    const rank = ranks[Math.max(0, rankIndex)];
-    const next = ranks[Math.min(ranks.length - 1, rankIndex + 1)];
-    const progress = next === rank ? 100 : Math.max(0, Math.min(100, (rating - rank.floor) / (next.floor - rank.floor) * 100));
+    const standing = competitiveStanding(rating, settled.length);
+    const rank = standing.tier;
+    const next = standing.nextTier;
+    const progress = standing.tierProgress;
     const realProfit = certified.reduce((sum, pick) => sum + (pick.realProfitAmount ?? 0), 0);
     const realStake = certified.reduce((sum, pick) => sum + (pick.realStakeAmount ?? 0), 0);
     const hasRealMoney = certified.some((pick) => pick.realStakeAmount !== null && pick.realProfitAmount !== null);
@@ -160,8 +152,7 @@ export function PickLedger() {
         <header><span><BarChart3 /> Category specialties</span><Link href="/leaderboard">View leaderboards <ArrowRight /></Link></header>
         <p>Your overall rating is only the start. Each pick type has its own rating so your strongest edge is easy to see.</p>
         {ratings.length ? <div>{[...ratings].sort((a, b) => b.rating - a.rating).map((item, index) => {
-          const rankIndex = ranks.findLastIndex((rank) => item.rating >= rank.floor);
-          const categoryRank = ranks[Math.max(0, rankIndex)];
+          const categoryRank = competitiveStanding(item.rating, item.gradedPicks).tier;
           return <article key={item.category}>
             <span><i>{index + 1}</i><strong>{categoryNames[item.category] ?? item.category.replaceAll("_", " ")}</strong></span>
             <div><b style={{ color: categoryRank.color }}>{item.rating}</b><small>{categoryRank.name} · {item.gradedPicks} settled</small></div>

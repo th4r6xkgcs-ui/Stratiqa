@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, MapPin, ShieldCheck, Target, Trophy, Users } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, Crown, LockKeyhole, MapPin, ShieldCheck, Sparkles, Swords, Target, Trophy, Users } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
+import { competitiveStanding, nearbyRivals, promotionForImpact } from "@/lib/ratings/competitive-ranks.js";
 
 type Profile = { public_alias?: string; public_slug?: string; country_code?: string; region_code?: string; locality?: string; leaderboard_opt_in?: boolean; show_recent_picks?: boolean; show_model_roster?: boolean; show_real_money_stats?: boolean };
 type Rating = { category: string; rating: number; gradedPicks: number };
+type RatingImpact = { pickId: string; category: string; previousRating: number; rating: number; ratingChange: number; recordedAt: string };
 type Leader = {
   rank: number; public_alias: string; category: string; rating: number; previous_rating?: number;
   public_slug?: string; rating_change?: number; graded_picks: number; wins: number; losses: number; roi_percent?: number;
@@ -26,6 +28,7 @@ function Movement({ value = 0 }: { value?: number }) {
 export function CertifiedLeaderboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [ratings, setRatings] = useState<Rating[]>([]);
+  const [ratingImpacts, setRatingImpacts] = useState<RatingImpact[]>([]);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [category, setCategory] = useState("player_prop");
   const [scope, setScope] = useState<"global" | "country" | "region" | "local">("global");
@@ -39,6 +42,7 @@ export function CertifiedLeaderboard() {
     ]).then(([profileResult, picksResult]) => {
       setProfile(profileResult.profile ?? {});
       setRatings(picksResult.ratings ?? []);
+      setRatingImpacts(picksResult.ratingImpacts ?? []);
     }).catch(() => setProfile({}));
   }, []);
 
@@ -60,10 +64,14 @@ export function CertifiedLeaderboard() {
 
   const currentRating = ratings.find((rating) => rating.category === category);
   const currentLeader = leaders.find((leader) => leader.is_current_user);
-  const distanceToTop10 = useMemo(() => {
+  const standing = competitiveStanding(currentRating?.rating ?? 1500, currentRating?.gradedPicks ?? 0);
+  const rivals = nearbyRivals(leaders, standing.rating, 3) as Leader[];
+  const latestImpact = ratingImpacts.filter((impact) => impact.category === category).sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+  const promotion = latestImpact ? promotionForImpact(latestImpact.previousRating, latestImpact.rating, currentRating?.gradedPicks ?? 0) : null;
+  const distanceToTop10 = (() => {
     if (!currentRating || leaders.length < 10) return null;
     return Math.max(0, Math.round(leaders[9].rating - currentRating.rating + 1));
-  }, [currentRating, leaders]);
+  })();
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,21 +91,41 @@ export function CertifiedLeaderboard() {
   const remaining = Math.max(0, 25 - (currentRating?.gradedPicks ?? 0));
 
   return <div className="competitive-hub">
+    {promotion ? <Card className="rank-promotion">
+      <Sparkles /><div><Badge tone="success">RANK UP</Badge><h2>{promotion.from.name} → {promotion.to.name}</h2><p>Your latest automatically settled {categoryLabel.toLowerCase()} pick moved you into a new competitive tier.</p></div><Crown />
+    </Card> : null}
     <section className="standing-strip">
       <Card>
         <span><Target /> YOUR {categoryLabel.toUpperCase()} RATING</span>
-        <strong>{currentRating ? Math.round(currentRating.rating) : "1500"}</strong>
-        <small>{remaining ? `Provisional · ${remaining} settled picks to rank` : currentLeader ? `#${currentLeader.rank} ${scopes.find(([value]) => value === scope)?.[1]}` : "Ranked · Join the public board"}</small>
+        <strong>{standing.rating}</strong>
+        <small>{remaining ? `Provisional · ${remaining} settled picks to rank` : currentLeader ? `#${currentLeader.rank} ${scopes.find(([value]) => value === scope)?.[1]}` : `Ranked · ${standing.tier.name}`}</small>
       </Card>
       <Card>
-        <span><Trophy /> NEXT TARGET</span>
-        <strong>{distanceToTop10 === null ? "Top 10" : distanceToTop10 ? `+${distanceToTop10}` : "Achieved"}</strong>
-        <small>{distanceToTop10 ? "Rating points to enter the top 10" : "Keep building your category record"}</small>
+        <span><Trophy /> NEXT RANK</span>
+        <strong>{standing.nextTier === standing.tier ? "Peak" : standing.nextTier.name}</strong>
+        <small>{standing.pointsToNext ? `${standing.pointsToNext} rating points away` : "Highest competitive tier achieved"}</small>
       </Card>
       <Card>
         <span><Users /> COMPETITIVE SCOPE</span>
         <strong>{scopes.find(([value]) => value === scope)?.[1]}</strong>
         <small>{scope === "global" ? "Competing with every eligible analyst" : "Based on your saved ranking region"}</small>
+      </Card>
+    </section>
+
+    <section className="rank-journey-grid">
+      <Card className="placement-journey">
+        <header><span>{standing.ranked ? <ShieldCheck /> : <LockKeyhole />} {standing.ranked ? "RANK ESTABLISHED" : "PLACEMENT JOURNEY"}</span><Badge tone={standing.ranked ? "success" : "warning"}>{currentRating?.gradedPicks ?? 0}/25</Badge></header>
+        <div><i><em style={{ width: `${standing.placementProgress}%` }} /></i><strong>{standing.ranked ? `${standing.tier.name} rating established` : `${standing.placementsRemaining} picks until public ranking`}</strong></div>
+        <p>Each automatically settled {categoryLabel.toLowerCase()} pick improves the accuracy of your competitive rating. Wins and losses both count.</p>
+      </Card>
+      <Card className="tier-journey">
+        <header><span><Crown /> TIER PROGRESS</span><strong style={{ color: standing.tier.color }}>{standing.tier.name}</strong></header>
+        <div><i><em style={{ width: `${standing.tierProgress}%`, background: standing.tier.color }} /></i><small>{standing.pointsToNext ? `${standing.pointsToNext} points to ${standing.nextTier.name}` : "Grandmaster achieved"}</small></div>
+        <p>Your rating reflects market difficulty, verified results, price quality, and performance—not how much money you wager.</p>
+      </Card>
+      <Card className="rival-preview">
+        <header><span><Swords /> NEAR YOUR RATING</span><Badge>{scope.toUpperCase()}</Badge></header>
+        {standing.ranked && rivals.length ? rivals.map((rival) => <span key={`${rival.public_alias}-${rival.rank}`}><b>#{rival.rank}</b><strong>{rival.public_alias}</strong><em>{Math.round(rival.rating)} · {Math.abs(Math.round(rival.rating - standing.rating))} away</em></span>) : <div><Users /><strong>Rivals appear after placement</strong><small>Complete your category placement picks and join the public board.</small></div>}
       </Card>
     </section>
 
@@ -143,6 +171,7 @@ export function CertifiedLeaderboard() {
             </details>;
           }) : <div className="ranking-empty"><Trophy /><strong>The top 10 is open</strong><p>Be among the first analysts to complete 25 automatically settled {categoryLabel.toLowerCase()} picks in this region.</p><Link href="/matchups">Find your next pick <ArrowRight /></Link></div>}
         </Card>
+        {currentRating && !remaining ? <Card className="top-ten-chase"><Target /><span><strong>{distanceToTop10 === null ? "Build the board" : distanceToTop10 ? `${distanceToTop10} points to the top 10` : "You reached the top 10"}</strong><small>{currentLeader ? `Currently #${currentLeader.rank} in ${scopes.find(([value]) => value === scope)?.[1].toLowerCase()} ${categoryLabel.toLowerCase()}` : "Enable your public profile to display your position while keeping personal details private."}</small></span><Link href="/matchups">Find next edge <ArrowRight /></Link></Card> : null}
       </section>
     </div>
   </div>;
