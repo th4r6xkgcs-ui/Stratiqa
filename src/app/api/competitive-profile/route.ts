@@ -26,7 +26,14 @@ export async function PATCH(request: Request) {
   if (!url || !key) return Response.json({ error: "Competitive profile storage is not configured." }, { status: 503 });
   const response = await fetch(`${url}/rest/v1/competitive_profiles?on_conflict=user_id`, {
     method: "POST", headers: headers(key, { Prefer: "resolution=merge-duplicates,return=representation" }),
-    body: JSON.stringify({ user_id: user.id, public_alias: alias || null, country_code: country || null, region_code: region || null, locality: locality || null, leaderboard_opt_in: optIn, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({
+      user_id: user.id, public_alias: alias || null, country_code: country || null,
+      region_code: region || null, locality: locality || null, leaderboard_opt_in: optIn,
+      show_recent_picks: body?.showRecentPicks !== false,
+      show_model_roster: body?.showModelRoster !== false,
+      show_real_money_stats: body?.showRealMoneyStats === true,
+      updated_at: new Date().toISOString(),
+    }),
   });
   if (!response.ok) return Response.json({ error: "Competitive profile could not be saved." }, { status: 503 });
   return Response.json({ profile: (await response.json() as unknown[])[0] });

@@ -5,11 +5,11 @@ import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, MapPin, ShieldCheck, Target, Trophy, Users } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 
-type Profile = { public_alias?: string; country_code?: string; region_code?: string; locality?: string; leaderboard_opt_in?: boolean };
+type Profile = { public_alias?: string; public_slug?: string; country_code?: string; region_code?: string; locality?: string; leaderboard_opt_in?: boolean; show_recent_picks?: boolean; show_model_roster?: boolean; show_real_money_stats?: boolean };
 type Rating = { category: string; rating: number; gradedPicks: number };
 type Leader = {
   rank: number; public_alias: string; category: string; rating: number; previous_rating?: number;
-  rating_change?: number; graded_picks: number; wins: number; losses: number; roi_percent?: number;
+  public_slug?: string; rating_change?: number; graded_picks: number; wins: number; losses: number; roi_percent?: number;
   win_rate?: number; country_code?: string; region_code?: string; locality?: string; is_current_user?: boolean;
 };
 
@@ -70,7 +70,7 @@ export function CertifiedLeaderboard() {
     const data = Object.fromEntries(new FormData(event.currentTarget));
     const response = await fetch("/api/competitive-profile", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publicAlias: data.publicAlias, countryCode: data.countryCode, regionCode: data.regionCode, locality: data.locality, leaderboardOptIn: data.leaderboardOptIn === "on" }),
+      body: JSON.stringify({ publicAlias: data.publicAlias, countryCode: data.countryCode, regionCode: data.regionCode, locality: data.locality, leaderboardOptIn: data.leaderboardOptIn === "on", showRecentPicks: data.showRecentPicks === "on", showModelRoster: data.showModelRoster === "on", showRealMoneyStats: data.showRealMoneyStats === "on" }),
     });
     const result = await response.json();
     if (!response.ok) return setStatus(result.error);
@@ -110,6 +110,7 @@ export function CertifiedLeaderboard() {
           <div><label>Country code<input name="countryCode" defaultValue={profile.country_code ?? ""} maxLength={2} placeholder="US" /></label><label>State / region<input name="regionCode" defaultValue={profile.region_code ?? ""} maxLength={12} placeholder="CA" /></label></div>
           <label>City or metro <small>Optional—never enter an address</small><input name="locality" defaultValue={profile.locality ?? ""} maxLength={60} placeholder="Los Angeles" /></label>
           <label className="ranking-optin"><input name="leaderboardOptIn" type="checkbox" defaultChecked={profile.leaderboard_opt_in} /><span><ShieldCheck /> Show my alias once I have 25 automatically settled picks in a category.</span></label>
+          <details className="ranking-privacy"><summary>Public profile privacy <ChevronDown /></summary><label><input name="showRecentPicks" type="checkbox" defaultChecked={profile.show_recent_picks !== false} /> Show recent verified picks</label><label><input name="showModelRoster" type="checkbox" defaultChecked={profile.show_model_roster !== false} /> Show active model roster</label><label><input name="showRealMoneyStats" type="checkbox" defaultChecked={profile.show_real_money_stats === true} /> Show sportsbook-confirmed money stats</label></details>
           <Button><Check /> Save ranking profile</Button>
         </form>
         {status ? <p>{status}</p> : null}
@@ -127,7 +128,7 @@ export function CertifiedLeaderboard() {
             return <details key={`${leader.category}-${leader.rank}-${leader.public_alias}`} className={leader.is_current_user ? "current-user" : ""}>
               <summary>
                 <b>#{leader.rank}</b>
-                <span><strong>{leader.public_alias}{leader.is_current_user ? " (You)" : ""}</strong><small>{[leader.locality, leader.region_code, leader.country_code].filter(Boolean).join(", ") || "Global"}</small></span>
+                <span><strong>{leader.public_slug ? <Link href={`/analysts/${leader.public_slug}`}>{leader.public_alias}{leader.is_current_user ? " (You)" : ""}</Link> : leader.public_alias}</strong><small>{[leader.locality, leader.region_code, leader.country_code].filter(Boolean).join(", ") || "Global"}</small></span>
                 <strong>{Math.round(leader.rating)}</strong>
                 <Movement value={leader.rating_change} />
                 <span>{leader.wins}-{leader.losses}<small>{leader.graded_picks} rated</small></span>
