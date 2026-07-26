@@ -23,6 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { AddPickLauncher } from "@/components/picks/add-pick-launcher";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
@@ -133,6 +134,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <kbd>Ctrl K</kbd>
           </label>
           <div className="topbar-actions">
+            <AddPickLauncher />
             <span className="live-pill"><i /> LIVE</span>
             <button aria-label="Notifications"><Bell size={20} /><b>3</b></button>
             <span className="streak"><Flame size={20} /> 18</span>
