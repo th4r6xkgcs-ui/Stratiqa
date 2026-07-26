@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
-import type { CategoryRating, TrackedPick } from "@/repositories/picks";
+import type { CategoryRating, TrackedCard, TrackedPick } from "@/repositories/picks";
 
 const categories = [
   ["player_prop", "Player prop"], ["moneyline", "Moneyline"], ["spread", "Spread"],
@@ -42,6 +42,7 @@ function ratingReview(pick: TrackedPick) {
 export function PickLedger() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
   const [ratings, setRatings] = useState<CategoryRating[]>([]);
+  const [cards, setCards] = useState<TrackedCard[]>([]);
   const [status, setStatus] = useState("Loading your picks…");
   const [signedIn, setSignedIn] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,6 +59,7 @@ export function PickLedger() {
         if (!response.ok) return setStatus(result.error);
         setPicks(result.picks);
         setRatings(result.ratings ?? []);
+        setCards(result.cards ?? []);
         setStatus(result.picks.length ? "" : "Your first pick is waiting.");
       })
       .catch(() => setStatus("Your picks could not be loaded. Please try again."));
@@ -128,6 +130,18 @@ export function PickLedger() {
         <div><strong className={summary.hasRealMoney && summary.realProfit >= 0 ? "positive" : summary.hasRealMoney ? "negative" : ""}>{summary.hasRealMoney ? `${summary.realProfit >= 0 ? "+" : ""}$${summary.realProfit.toFixed(2)}` : "N/A"}</strong><span>Real profit</span></div>
         <div><strong>{summary.hasRealMoney ? `${summary.realRoi.toFixed(1)}%` : "N/A"}</strong><span>Real ROI</span></div>
       </section>
+
+      {cards.some((card) => card.cardType === "parlay") ? <Card className="parlay-record">
+        <header><span><Trophy /> Parlay cards</span><Badge>{cards.filter((card) => card.cardType === "parlay").length}</Badge></header>
+        <div>{cards.filter((card) => card.cardType === "parlay").slice(0, 6).map((card) => {
+          const price = card.combinedAmericanOdds;
+          return <article key={card.id} className={`pick-result-${card.result}`}>
+            <div><small>{card.legCount}-LEG PARLAY</small><strong>{price == null ? "Calculating price" : `${price > 0 ? "+" : ""}${price}`}</strong><span>{card.confidence}% card confidence</span></div>
+            <div><small>RESULT</small><strong>{card.result === "pending" ? "In play" : card.result.toUpperCase()}</strong><span>{card.result === "win" ? `+${(card.profitUnits ?? 0).toFixed(2)}u` : card.result === "loss" ? `-${card.stakeUnits.toFixed(2)}u` : "Automatic settlement"}</span></div>
+          </article>;
+        })}</div>
+        <p>Each leg keeps its category record. The complete card separately builds your Parlay rating.</p>
+      </Card> : null}
 
       <div className="pick-content-grid">
         <Card className="pick-history">

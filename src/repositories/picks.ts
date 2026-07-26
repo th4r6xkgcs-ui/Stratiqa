@@ -17,6 +17,11 @@ export type TrackedPick = {
 };
 export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "certificationStatus" | "eventCommenceAt" | "realStakeAmount" | "realPayoutAmount" | "realProfitAmount" | "placedAt" | "gradedAt">;
 export type CategoryRating = { category: string; rating: number; gradedPicks: number };
+export type TrackedCard = {
+  id: string; cardType: "single" | "parlay"; legCount: number; combinedAmericanOdds: number | null;
+  confidence: number; stakeUnits: number; result: PickResult; verificationStatus: "pending" | "verified" | "void";
+  profitUnits: number | null; placedAt: string; settledAt: string | null;
+};
 export type ProviderPick = Omit<NewPick, "notes"> & {
   providerEventId: string; providerSportKey: string; marketKey: string; outcomeName: string; linePoint: number | null;
   attributionType: "judgment" | "model"; modelId: string | null; modelVersion: number | null; modelName: string | null;
@@ -30,6 +35,7 @@ export type ProviderPick = Omit<NewPick, "notes"> & {
 interface PicksRepository {
   list(userId: string): Promise<TrackedPick[]>;
   listRatings(userId: string): Promise<CategoryRating[]>;
+  listCards(userId: string): Promise<TrackedCard[]>;
   create(userId: string, pick: NewPick): Promise<TrackedPick>;
   createProvider(userId: string, pick: ProviderPick): Promise<TrackedPick>;
   createProviderBatch(userId: string, picks: ProviderPick[]): Promise<TrackedPick[]>;
@@ -43,6 +49,7 @@ const developmentStore = new Map<string, TrackedPick[]>();
 class DevelopmentPicksRepository implements PicksRepository {
   async list(userId: string) { return developmentStore.get(userId) ?? []; }
   async listRatings() { return []; }
+  async listCards() { return []; }
   async create(userId: string, pick: NewPick) {
     const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, certificationStatus: "tracked", eventCommenceAt: null, realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
@@ -118,6 +125,19 @@ class SupabasePicksRepository implements PicksRepository {
     if (!response.ok) throw new Error(`Rating storage responded with ${response.status}`);
     return (await response.json() as Array<{ category: string; rating: number; graded_picks: number }>).map((row) => ({
       category: row.category, rating: Number(row.rating), gradedPicks: row.graded_picks,
+    }));
+  }
+  async listCards(userId: string) {
+    const response = await fetch(`${this.url}/rest/v1/pick_cards?user_id=eq.${encodeURIComponent(userId)}&select=*&order=placed_at.desc&limit=100`, { headers: this.headers(), cache: "no-store", signal: AbortSignal.timeout(8_000) });
+    if (!response.ok) {
+      if (response.status === 404) return [];
+      throw new Error(`Pick card storage responded with ${response.status}`);
+    }
+    return (await response.json() as Array<{ id: string; card_type: "single" | "parlay"; leg_count: number; combined_american_odds: number | null; confidence: number; stake_units: number; result: PickResult; verification_status: "pending" | "verified" | "void"; profit_units: number | null; placed_at: string; settled_at: string | null }>).map((row) => ({
+      id: row.id, cardType: row.card_type, legCount: row.leg_count, combinedAmericanOdds: row.combined_american_odds,
+      confidence: row.confidence, stakeUnits: Number(row.stake_units), result: row.result,
+      verificationStatus: row.verification_status, profitUnits: row.profit_units == null ? null : Number(row.profit_units),
+      placedAt: row.placed_at, settledAt: row.settled_at,
     }));
   }
   async create(userId: string, pick: NewPick) {

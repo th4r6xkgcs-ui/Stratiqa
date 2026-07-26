@@ -6,7 +6,7 @@ import { Badge, Button, Card } from "@/components/ui/primitives";
 
 type Profile = { public_alias?: string; country_code?: string; region_code?: string; locality?: string; leaderboard_opt_in?: boolean };
 type Leader = { rank: number; public_alias: string; category: string; rating: number; graded_picks: number; wins: number; losses: number; country_code?: string; region_code?: string; locality?: string };
-const categories = [["player_prop", "Player Props"], ["moneyline", "Moneylines"], ["spread", "Spreads"], ["total", "Totals"]];
+const categories = [["player_prop", "Player Props"], ["moneyline", "Moneylines"], ["spread", "Spreads"], ["total", "Totals"], ["parlay", "Parlays"]];
 
 export function CertifiedLeaderboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
