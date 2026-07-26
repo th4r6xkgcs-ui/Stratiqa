@@ -24,7 +24,7 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
     kind: "prop", propId: prop.id, outcomeName: quote?.outcomeName ?? prop.line.split(" ")[0],
     selection: `${quote?.outcomeName ?? prop.line.split(" ")[0]} ${prop.point ?? prop.line.split(" ")[1]} ${prop.market}`,
     eventName: `${prop.player} · ${prop.matchup}`, book: quote?.book ?? provider, price: quote?.price ?? prop.price,
-    confidence: prop.confidence, expectedValue: prop.expectedValue, live: Boolean(prop.live), origin: "stratiqa",
+    confidence: prop.confidence, expectedValue: prop.expectedValue, live: Boolean(prop.live), origin: prop.tags.includes("AI Pick") ? "stratiqa" : "personal",
   });
 
   return <div>
