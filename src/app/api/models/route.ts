@@ -8,6 +8,7 @@ const headers = (key: string) => ({ apikey: key, Authorization: `Bearer ${key}`,
 
 type ModelRow = { id: string; name: string; sport: string; category: string; description: string; factors: string[]; strategy: string; risk_profile: string; weights: Record<string, number>; version: number; status: string };
 type PickRow = { model_id: string; american_odds: number; result: "win" | "loss" | "push"; verification_status: string };
+type RatingRow = { model_id: string; rating: number; graded_picks: number; wins: number; losses: number; roi_percent: number };
 
 export async function GET() {
   const user = await getSessionUser();
@@ -15,23 +16,29 @@ export async function GET() {
   const { url, key } = config();
   if (!url || !key) return Response.json({ models: [] });
   const authHeaders = headers(key);
-  const [modelsResponse, picksResponse] = await Promise.all([
+  const [modelsResponse, picksResponse, ratingsResponse] = await Promise.all([
     fetch(`${url}/rest/v1/analyst_models?user_id=eq.${user.id}&select=*&order=updated_at.desc`, { headers: authHeaders, cache: "no-store" }),
     fetch(`${url}/rest/v1/graded_betting_activity?user_id=eq.${user.id}&model_id=not.is.null&verification_status=eq.verified&result=in.(win,loss,push)&select=model_id,american_odds,result`, { headers: authHeaders, cache: "no-store" }),
+    fetch(`${url}/rest/v1/model_ratings?user_id=eq.${user.id}&select=model_id,rating,graded_picks,wins,losses,roi_percent`, { headers: authHeaders, cache: "no-store" }),
   ]);
   if (!modelsResponse.ok) return Response.json({ error: "Models are temporarily unavailable." }, { status: 503 });
   const models = await modelsResponse.json() as ModelRow[];
   const picks = picksResponse.ok ? await picksResponse.json() as PickRow[] : [];
+  const ratingRows = ratingsResponse.ok ? await ratingsResponse.json() as RatingRow[] : [];
   return Response.json({ models: models.map((model) => {
     const samples = picks.filter((pick) => pick.model_id === model.id);
     const decisions = samples.filter((pick) => pick.result !== "push");
     const wins = decisions.filter((pick) => pick.result === "win").length;
-    const rating = Math.round(samples.reduce((score, pick) => {
+    const stored = ratingRows.find((row) => row.model_id === model.id);
+    const fallbackRating = Math.round(samples.reduce((score, pick) => {
       if (pick.result === "push") return score;
       const expected = pick.american_odds > 0 ? 100 / (pick.american_odds + 100) : Math.abs(pick.american_odds) / (Math.abs(pick.american_odds) + 100);
       return score + 28 * ((pick.result === "win" ? 1 : 0) - expected);
     }, 1500));
-    return { ...model, performance: { verified: samples.length, wins, losses: decisions.length - wins, accuracy: decisions.length ? Math.round(wins / decisions.length * 100) : null, rating } };
+    const verified = stored?.graded_picks ?? samples.length;
+    const storedWins = stored?.wins ?? wins;
+    const storedLosses = stored?.losses ?? decisions.length - wins;
+    return { ...model, performance: { verified, wins: storedWins, losses: storedLosses, accuracy: storedWins + storedLosses ? Math.round(storedWins / (storedWins + storedLosses) * 100) : null, rating: Math.round(stored?.rating ?? fallbackRating), roi: stored?.roi_percent ?? null } };
   }) });
 }
 

@@ -6,6 +6,7 @@ import { Badge, Button, Card } from "@/components/ui/primitives";
 import { factorWeights, modelIdentity } from "@/lib/models/profile";
 import { addToSlip } from "@/lib/picks/slip";
 import { ModelCommandCenter, type ManagedModel } from "@/components/models/model-command-center";
+import { ModelArena } from "@/components/models/model-arena";
 
 type Model = ManagedModel;
 type Recommendation = { id: string; modelId: string; modelName: string; category: string; title: string; selection: string; eventName: string; book: string; price: number; confidence: number; expectedValue: number; reasons: string[]; live: boolean; kind: "prop" | "matchup"; propId?: string; slug?: string; outcomeName?: string };
@@ -72,6 +73,8 @@ export function ModelWorkshop() {
 
       <footer>{step ? <Button variant="secondary" onClick={() => setStep((value) => value - 1)}><ArrowLeft /> Back</Button> : <span />}<Button disabled={!canContinue || saving} onClick={() => step < 2 ? setStep((value) => value + 1) : save()}>{saving ? "Building…" : step < 2 ? "Continue" : "Build My Model"} {step < 2 ? <ArrowRight /> : <Zap />}</Button></footer>
     </Card>
+
+    {models.length ? <ModelArena models={models} /> : null}
 
     {models.length ? <section className="model-recommendations"><header><div><span className="landing-kicker">YOUR MODELS&apos; BOARD</span><h2>Markets your specialists understand</h2><p>These are matches, not guarantees. Open the reasoning, then decide what deserves your slip.</p></div><Badge tone={recommendations.some((item) => item.live) ? "success" : "warning"}>{recommendations.some((item) => item.live) ? "LIVE LINES" : "ANALYSIS MODE"}</Badge></header>{recommendations.length ? <div>{recommendations.slice(0, 6).map((item) => <Card className="model-recommendation-card" key={item.id}><header><span><BrainCircuit /> {item.modelName}</span><Badge tone={item.live ? "success" : "warning"}>{item.live ? "VERIFIABLE" : "WATCHLIST"}</Badge></header><small>{item.eventName}</small><h3>{item.title}</h3><div className="recommendation-score"><span><b>{item.confidence}%</b>Model fit</span><span><b>+{item.expectedValue.toFixed(1)}%</b>Market EV</span><span><b>{item.price > 0 ? "+" : ""}{item.price}</b>{item.book}</span></div><details><summary>Why it fits this model <ChevronDown /></summary><ul>{item.reasons.map((reason) => <li key={reason}><Check /> {reason}</li>)}</ul></details><Button onClick={() => addToSlip({ id: item.id, kind: item.kind, propId: item.propId, slug: item.slug, outcomeName: item.outcomeName, selection: item.selection, eventName: item.eventName, book: item.book, price: item.price, confidence: item.confidence, expectedValue: item.expectedValue, live: item.live, origin: "model", modelId: item.modelId, modelName: item.modelName })}><Plus /> Add as {item.modelName} pick</Button></Card>)}</div> : <Card className="model-empty"><Target /><h3>No compatible markets right now</h3><p>Your models are ready. Their board will populate when supported markets are available.</p></Card>}</section> : null}
 
