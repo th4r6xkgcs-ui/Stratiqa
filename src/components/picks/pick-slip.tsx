@@ -23,6 +23,7 @@ export function PickSlip() {
     const receive = (event: Event) => {
       const leg = (event as CustomEvent<SlipLeg>).detail;
       setLegs((current) => current.some((item) => item.id === leg.id) ? current : [...current, leg]);
+      if (leg.modelId) setSource(leg.modelId);
       setOpen(true); setStatus("");
     };
     window.addEventListener(slipEvent, receive);
@@ -44,7 +45,7 @@ export function PickSlip() {
     return { confidence, ev, risk, grade, winGain, loss, correlated, autoUnits: recommendedUnits(confidence, correlated) };
   }, [legs]);
   async function lock() {
-    if (legs.some((leg) => !leg.live || !leg.slug)) return setStatus("Demo props can be analyzed, but only live provider lines can be locked for ratings.");
+    if (legs.some((leg) => !leg.live || (leg.kind === "prop" ? !leg.propId : !leg.slug))) return setStatus("Watchlist markets can be analyzed, but only live provider lines can be locked for ratings.");
     setSaving(true);
     const effectiveUnits = sizingMode === "auto" ? analysis.autoUnits : units;
     const selectedModel = models.find((model) => model.id === source);
@@ -52,7 +53,7 @@ export function PickSlip() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         units: effectiveUnits, sizingMode,
-        legs: legs.map((leg) => ({ kind: leg.kind ?? "matchup", slug: leg.slug, propId: leg.propId, outcomeName: leg.outcomeName, book: leg.book, line: leg.selection, modelId: selectedModel?.id, modelName: selectedModel?.name, origin: selectedModel ? "model" : source === "personal" ? "personal" : leg.origin ?? "stratiqa" })),
+        legs: legs.map((leg) => ({ kind: leg.kind ?? "matchup", slug: leg.slug, propId: leg.propId, outcomeName: leg.outcomeName, book: leg.book, line: leg.selection, modelId: selectedModel?.id ?? leg.modelId, modelName: selectedModel?.name ?? leg.modelName, origin: selectedModel || leg.modelId ? "model" : source === "personal" ? "personal" : leg.origin ?? "stratiqa" })),
       }),
     });
     const result = await response.json(); setSaving(false);

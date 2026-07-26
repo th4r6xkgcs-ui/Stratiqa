@@ -31,6 +31,14 @@ function ratingFromPicks(picks: TrackedPick[]) {
     }, 1500));
 }
 
+function ratingReview(pick: TrackedPick) {
+  const implied = Math.round((pick.americanOdds > 0 ? 100 / (pick.americanOdds + 100) : Math.abs(pick.americanOdds) / (Math.abs(pick.americanOdds) + 100)) * 100);
+  if (pick.result === "win") return { impact: "UP", detail: `Beat a ${implied}% market expectation` };
+  if (pick.result === "loss") return { impact: "DOWN", detail: `Missed a ${implied}% market expectation` };
+  if (pick.result === "push") return { impact: "EVEN", detail: "Pushes never change your rating" };
+  return { impact: "LOCKED", detail: "Waiting for automatic settlement" };
+}
+
 export function PickLedger() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
   const [ratings, setRatings] = useState<CategoryRating[]>([]);
@@ -125,11 +133,12 @@ export function PickLedger() {
           {picks.length ? <div>{picks.map((pick) => {
             const verified = pick.verificationStatus === "verified";
             const review = pick.result === "win" ? "Great pick" : pick.result === "loss" ? "Review the read" : pick.result === "push" ? "Even result" : "Waiting";
+            const rating = ratingReview(pick);
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
               <div className="pick-result-copy"><small>{pick.pickOrigin === "model" ? `My model${pick.modelName ? ` · ${pick.modelName}` : ""}` : pick.pickOrigin === "stratiqa" ? "STRATIQA pick" : "My pick"} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
-              <div className="pick-result-review"><strong>{review}</strong><small>{verified ? "Verified result" : pick.verificationStatus === "pending" ? "Auto-settlement pending" : "Practice journal"}</small></div>
-              <div className="pick-result-rating">{verified ? <><b>{pick.result === "win" ? "+" : pick.result === "loss" ? "−" : ""}{pick.result === "push" ? "0" : "—"}</b><small>rating</small></> : <LockKeyhole />}</div>
+              <div className="pick-result-review"><strong>{review}</strong><small>{verified ? rating.detail : pick.verificationStatus === "pending" ? "Auto-settlement pending" : "Practice journal"}</small></div>
+              <div className="pick-result-rating">{verified ? <><b>{rating.impact}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;
           })}</div> : <div className="ledger-empty"><Target /><strong>Your journey starts with one pick</strong><p>Open Matchups, find a position you believe in, and start building your verified rating.</p><Link href="/matchups">Explore matchups <ArrowRight /></Link></div>}
         </Card>
