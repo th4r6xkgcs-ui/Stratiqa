@@ -67,6 +67,8 @@ export function CertifiedLeaderboard() {
   const standing = competitiveStanding(currentRating?.rating ?? 1500, currentRating?.gradedPicks ?? 0);
   const rivals = nearbyRivals(leaders, standing.rating, 3) as Leader[];
   const latestImpact = ratingImpacts.filter((impact) => impact.category === category).sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+  const categoryHistory = ratingImpacts.filter((impact) => impact.category === category).sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()).slice(-8);
+  const personalBest = Math.max(standing.rating, ...categoryHistory.map((impact) => impact.rating));
   const promotion = latestImpact ? promotionForImpact(latestImpact.previousRating, latestImpact.rating, currentRating?.gradedPicks ?? 0) : null;
   const distanceToTop10 = (() => {
     if (!currentRating || leaders.length < 10) return null;
@@ -121,13 +123,22 @@ export function CertifiedLeaderboard() {
       <Card className="tier-journey">
         <header><span><Crown /> TIER PROGRESS</span><strong style={{ color: standing.tier.color }}>{standing.tier.name}</strong></header>
         <div><i><em style={{ width: `${standing.tierProgress}%`, background: standing.tier.color }} /></i><small>{standing.pointsToNext ? `${standing.pointsToNext} points to ${standing.nextTier.name}` : "Grandmaster achieved"}</small></div>
-        <p>Your rating reflects market difficulty, verified results, price quality, and performance—not how much money you wager.</p>
+        <p>Your rating reflects market difficulty, verified results, price quality, and performance—not how much money you wager. Personal best: <strong>{Math.round(personalBest)}</strong>.</p>
       </Card>
       <Card className="rival-preview">
         <header><span><Swords /> NEAR YOUR RATING</span><Badge>{scope.toUpperCase()}</Badge></header>
         {standing.ranked && rivals.length ? rivals.map((rival) => <span key={`${rival.public_alias}-${rival.rank}`}><b>#{rival.rank}</b><strong>{rival.public_alias}</strong><em>{Math.round(rival.rating)} · {Math.abs(Math.round(rival.rating - standing.rating))} away</em></span>) : <div><Users /><strong>Rivals appear after placement</strong><small>Complete your category placement picks and join the public board.</small></div>}
       </Card>
     </section>
+
+    {categoryHistory.length ? <Card className="category-rating-history">
+      <header><span><ArrowUp /> RECENT {categoryLabel.toUpperCase()} RATING HISTORY</span><strong>Best {Math.round(personalBest)}</strong></header>
+      <div>{categoryHistory.map((impact) => {
+        const height = 24 + Math.max(0, Math.min(76, (impact.rating - 1200) / 10));
+        return <span key={impact.pickId}><i style={{ height: `${height}%`, background: impact.ratingChange >= 0 ? "var(--green)" : "var(--orange)" }} /><small>{impact.ratingChange > 0 ? "+" : ""}{Math.round(impact.ratingChange)}</small></span>;
+      })}</div>
+      <p>Each bar is one automatically settled pick. Green increased your category rating; orange decreased it.</p>
+    </Card> : null}
 
     <div className="certified-rankings">
       <Card className="ranking-profile">
