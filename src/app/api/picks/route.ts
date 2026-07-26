@@ -6,11 +6,12 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
   try {
-    const [picks, ratings, cards, settlementAudit] = await Promise.all([
+    const [picks, ratings, cards, settlementAudit, ratingImpacts] = await Promise.all([
       picksRepository.list(user.id), picksRepository.listRatings(user.id),
       picksRepository.listCards(user.id), picksRepository.listSettlementAudit(user.id),
+      picksRepository.listRatingImpacts(user.id),
     ]);
-    return Response.json({ picks, ratings, cards, settlementAudit });
+    return Response.json({ picks, ratings, cards, settlementAudit, ratingImpacts });
   }
   catch (error) { console.error("Pick list failed", error); return Response.json({ error: "Pick history is temporarily unavailable." }, { status: 503 }); }
 }
