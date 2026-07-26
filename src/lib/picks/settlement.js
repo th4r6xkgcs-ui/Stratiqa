@@ -26,3 +26,22 @@ export function settleGameMarket(pick, score) {
 
   return "void";
 }
+
+/**
+ * @returns {{ result: "pending" | "win" | "loss" | "push" | "void", reason: string, actual?: number }}
+ */
+export function settlePlayerProp(pick, stat) {
+  if (!stat || stat.status === "pending") return { result: "pending", reason: "Official player statistics are not final." };
+  if (stat.status === "dnp") return { result: "void", reason: "Player did not participate." };
+  if (stat.status === "void") return { result: "void", reason: stat.reason || "Provider voided the market." };
+  const actual = Number(stat.value);
+  const line = Number(pick.linePoint);
+  if (!Number.isFinite(actual) || !Number.isFinite(line)) return { result: "void", reason: "Official statistic or locked line was unavailable." };
+  if (actual === line) return { result: "push", reason: `Official ${pick.marketKey} finished exactly on ${line}.`, actual };
+  const over = String(pick.outcomeName).toLowerCase() === "over";
+  return {
+    result: (actual > line) === over ? "win" : "loss",
+    reason: `Official ${pick.marketKey}: ${actual}; locked line: ${line}.`,
+    actual,
+  };
+}
