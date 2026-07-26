@@ -6,11 +6,14 @@ import { addToSlip, slipEvent, type SlipLeg } from "@/lib/picks/slip";
 import { recommendedUnits } from "@/lib/picks/sizing";
 
 const storageKey = "stratiqa.pick-slip.v1";
+type SlipModel = { id: string; name: string; sport: string; category: string };
 export function PickSlip() {
   const [legs, setLegs] = useState<SlipLeg[]>([]);
   const [open, setOpen] = useState(false);
   const [units, setUnits] = useState(1);
   const [sizingMode, setSizingMode] = useState<"auto" | "custom">("auto");
+  const [models, setModels] = useState<SlipModel[]>([]);
+  const [source, setSource] = useState("stratiqa");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   useEffect(() => {
@@ -26,6 +29,9 @@ export function PickSlip() {
     return () => window.removeEventListener(slipEvent, receive);
   }, []);
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(legs)); }, [legs]);
+  useEffect(() => {
+    fetch("/api/models", { cache: "no-store" }).then((response) => response.ok ? response.json() : { models: [] }).then((result) => setModels(result.models ?? [])).catch(() => undefined);
+  }, []);
   const analysis = useMemo(() => {
     const correlated = new Set(legs.map((leg) => leg.eventName)).size < legs.length;
     const rawConfidence = legs.length ? legs.reduce((product, leg) => product * leg.confidence / 100, 1) ** (1 / legs.length) * 100 : 0;
@@ -41,11 +47,12 @@ export function PickSlip() {
     if (legs.some((leg) => !leg.live || !leg.slug)) return setStatus("Demo props can be analyzed, but only live provider lines can be locked for ratings.");
     setSaving(true);
     const effectiveUnits = sizingMode === "auto" ? analysis.autoUnits : units;
+    const selectedModel = models.find((model) => model.id === source);
     const response = await fetch("/api/picks/verified/batch", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         units: effectiveUnits, sizingMode,
-        legs: legs.map((leg) => ({ kind: leg.kind ?? "matchup", slug: leg.slug, propId: leg.propId, outcomeName: leg.outcomeName, book: leg.book, line: leg.selection, modelName: leg.modelName, origin: leg.origin ?? "stratiqa" })),
+        legs: legs.map((leg) => ({ kind: leg.kind ?? "matchup", slug: leg.slug, propId: leg.propId, outcomeName: leg.outcomeName, book: leg.book, line: leg.selection, modelId: selectedModel?.id, modelName: selectedModel?.name, origin: selectedModel ? "model" : source === "personal" ? "personal" : leg.origin ?? "stratiqa" })),
       }),
     });
     const result = await response.json(); setSaving(false);
@@ -61,6 +68,7 @@ export function PickSlip() {
       {legs.length ? <>
         <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>{leg.book}<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>{leg.origin === "model" ? `MY MODEL${leg.modelName ? ` · ${leg.modelName}` : ""}` : leg.origin === "personal" ? "MY PICK" : "STRATIQA PICK"}</em>{!leg.live ? <em>DEMO · NOT VERIFIED</em> : <em className="verified"><ShieldCheck /> VERIFIABLE LINE</em>}</div></article>)}</div>
         <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>Overall confidence<b>{analysis.confidence}%</b></span><span>Average EV<b>+{analysis.ev.toFixed(1)}%</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
+        <label className="slip-source"><span>Whose pick is this?<small>Verification is separate and always automatic</small></span><select value={source} onChange={(event) => setSource(event.target.value)}><option value="stratiqa">STRATIQA recommendation</option><option value="personal">My own pick</option>{models.map((model) => <option value={model.id} key={model.id}>My model · {model.name}</option>)}</select></label>
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
         {analysis.correlated ? <p className="slip-note"><AlertTriangle /> This card contains selections from the same event. Confidence and automatic sizing are reduced.</p> : null}

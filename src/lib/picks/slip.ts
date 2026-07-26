@@ -1,6 +1,6 @@
 export type SlipLeg = {
   id: string; slug?: string; selection: string; eventName: string; book: string; price: number;
-  confidence: number; expectedValue: number; live: boolean; modelName?: string | null;
+  confidence: number; expectedValue: number; live: boolean; modelId?: string | null; modelName?: string | null;
   origin?: "stratiqa" | "model" | "personal";
   kind?: "matchup" | "prop"; propId?: string; outcomeName?: string;
 };

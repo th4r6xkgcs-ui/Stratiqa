@@ -4,7 +4,7 @@ import { ModelWorkshop } from "@/components/models/model-workshop";
 
 export default function LabPage() {
   return <div className="product-page">
-    <header className="product-hero"><div><Badge tone="accent"><FlaskConical size={11} /> MODEL LAB</Badge><h1>Build your edge</h1><p>Create specialized models, choose what they value, and build a verified track record one locked prediction at a time.</p></div></header>
+    <header className="product-hero"><div><Badge tone="accent"><FlaskConical size={11} /> MODEL WORKSHOP</Badge><h1>Build your model team</h1><p>No coding or complicated math required. Build category specialists in plain language, then prove each one with automatically verified picks.</p></div></header>
     <ModelWorkshop />
   </div>;
 }

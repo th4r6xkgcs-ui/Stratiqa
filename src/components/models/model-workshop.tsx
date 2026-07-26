@@ -1,37 +1,78 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { BrainCircuit, Check, FlaskConical, Plus, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, BrainCircuit, Check, Gauge, Pencil, ShieldCheck, Sparkles, Target, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
+import { factorWeights, modelIdentity } from "@/lib/models/profile";
 
-type Model = { id: string; name: string; sport: string; category: string; description: string; factors: string[]; version: number; status: string };
-const factorOptions = [["market_value", "Market value"], ["recent_form", "Recent form"], ["injuries", "Injuries"], ["weather", "Weather"], ["matchup", "Matchup quality"], ["line_movement", "Line movement"], ["player_usage", "Player usage"], ["bullpen", "Bullpen"]];
+type Performance = { verified: number; wins: number; losses: number; accuracy: number | null; rating: number };
+type Model = { id: string; name: string; sport: string; category: string; description: string; factors: string[]; strategy: string; risk_profile: string; weights: Record<string, number>; version: number; status: string; performance: Performance };
+const sports = ["MLB", "NBA", "NFL", "NHL", "WNBA", "NCAAF", "NCAAB"];
+const categories = [["player_prop", "Player Props", "Project individual player outcomes"], ["moneyline", "Game Winners", "Find the team most likely to win"], ["spread", "Point Spreads", "Measure performance against the line"], ["total", "Game Totals", "Project combined scoring"], ["live", "Live Markets", "React to in-game information"]];
+const factorOptions = [
+  ["market_value", "Best available price", "Find odds better than your projection"], ["recent_form", "Recent performance", "Reward meaningful form changes"],
+  ["injuries", "Injuries & availability", "Adjust when important players change"], ["weather", "Weather & conditions", "Account for the playing environment"],
+  ["matchup", "Matchup advantages", "Compare strengths against weaknesses"], ["line_movement", "Market movement", "Watch how sharp prices change"],
+  ["player_usage", "Player opportunity", "Track minutes, touches, and roles"], ["bullpen", "Bullpen strength", "Measure late-game pitching depth"],
+];
+const riskOptions = [["selective", "Precision", "Fewer picks with stronger agreement"], ["balanced", "Balanced", "A practical mix of quality and opportunity"], ["opportunistic", "Explorer", "More chances when upside is compelling"]];
+const label = (value: string) => factorOptions.find(([key]) => key === value)?.[1] ?? value.replace("_", " ");
 
 export function ModelWorkshop() {
   const [models, setModels] = useState<Model[]>([]);
-  const [selected, setSelected] = useState(["market_value", "recent_form"]);
-  const [status, setStatus] = useState("");
-  useEffect(() => { fetch("/api/models").then((response) => response.json()).then((result) => setModels(result.models ?? [])).catch(() => setStatus("Models could not be loaded.")); }, []);
-  const toggle = (factor: string) => setSelected((current) => current.includes(factor) ? current.filter((item) => item !== factor) : [...current, factor]);
-  async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const body = { ...Object.fromEntries(new FormData(form)), factors: selected };
-    const response = await fetch("/api/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const result = await response.json();
+  const [step, setStep] = useState(0);
+  const [sport, setSport] = useState("MLB");
+  const [category, setCategory] = useState("player_prop");
+  const [selected, setSelected] = useState(["market_value", "recent_form", "matchup"]);
+  const [strategy, setStrategy] = useState("market_value");
+  const [risk, setRisk] = useState("balanced");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState("Loading your model roster…");
+  useEffect(() => {
+    fetch("/api/models").then(async (response) => ({ response, result: await response.json() })).then(({ response, result }) => {
+      if (response.status === 401) return setStatus("Sign in to build and save your models.");
+      if (!response.ok) return setStatus(result.error);
+      setModels(result.models ?? []); setStatus("");
+    }).catch(() => setStatus("Models could not be loaded."));
+  }, []);
+  const profile = useMemo(() => modelIdentity(category, selected, risk), [category, selected, risk]);
+  const suggestedName = `${sport} ${profile.archetype}`;
+  const toggle = (factor: string) => setSelected((current) => current.includes(factor) ? current.length > 2 ? current.filter((item) => item !== factor) : current : [...current, factor]);
+  const canContinue = step === 0 || (step === 1 && selected.length >= 2) || (step === 2 && (name.trim() || suggestedName));
+  async function save() {
+    setSaving(true);
+    const response = await fetch("/api/models", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() || suggestedName, sport, category, description, factors: selected, strategy, riskProfile: risk, weights: factorWeights(selected, strategy) }),
+    });
+    const result = await response.json(); setSaving(false);
     if (!response.ok) return setStatus(result.error);
-    setModels((current) => [result.model, ...current]); form.reset(); setStatus("Model saved as a draft. Attach verified picks when you are ready to test it.");
+    setModels((current) => [result.model, ...current]); setStatus(`${result.model.name} is ready for verified testing.`);
+    setStep(0); setName(""); setDescription("");
+    document.querySelector(".model-roster")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-  return <div className="model-workshop">
-    <Card className="model-builder"><header><span><Plus /> Create a specialized model</span><Badge tone="warning">DRAFT FIRST</Badge></header><form onSubmit={create}>
-      <label>Model name<input name="name" required maxLength={60} placeholder="MLB Bullpen Edge" /></label>
-      <div className="ledger-field-row"><label>Sport<input name="sport" required maxLength={20} placeholder="MLB" /></label><label>Category<select name="category"><option value="moneyline">Moneylines</option><option value="player_prop">Player props</option><option value="spread">Spreads</option><option value="total">Totals</option><option value="live">Live</option></select></label></div>
-      <label>What is this model trying to find?<textarea name="description" maxLength={300} placeholder="Find underpriced teams with rested high-leverage bullpens." /></label>
-      <fieldset><legend>Choose at least two factors</legend>{factorOptions.map(([value, label]) => <button type="button" className={selected.includes(value) ? "active" : ""} onClick={() => toggle(value)} key={value}>{label}<Check /></button>)}</fieldset>
-      <Button><FlaskConical /> Save model draft</Button>
-    </form></Card>
-    <section className="model-roster"><header><div><span className="landing-kicker">YOUR MODEL ROSTER</span><h2>Specialists, not one-size-fits-all.</h2></div><Badge>{models.length} MODELS</Badge></header>
-      {models.length ? <div>{models.map((model) => <Card key={model.id}><header><BrainCircuit /><Badge tone={model.status === "live" ? "success" : "warning"}>{model.status}</Badge></header><h3>{model.name}</h3><p>{model.sport} · {model.category.replace("_", " ")} · v{model.version}</p><small>{model.description || "No description yet."}</small><div>{model.factors.map((factor) => <span key={factor}>{factor.replace("_", " ")}</span>)}</div><footer><ShieldCheck /> Rating begins only with verified predictions</footer></Card>)}</div> : <Card className="model-empty"><BrainCircuit /><h3>Build your first specialist</h3><p>Start with one category you understand well. Every verified prediction will become evidence for that model&apos;s rating.</p></Card>}
-    </section>{status ? <p className="ledger-status">{status}</p> : null}
+  return <div className="model-workshop-v2">
+    <Card className="guided-model-builder">
+      <header><div><span className="landing-kicker">GUIDED MODEL BUILDER</span><h2>{step === 0 ? "Choose your arena" : step === 1 ? "Teach it what matters" : "Meet your model"}</h2></div><Badge tone="accent">STEP {step + 1} OF 3</Badge></header>
+      <div className="model-stepper">{[0, 1, 2].map((item) => <i className={item <= step ? "active" : ""} key={item}><b>{item < step ? <Check /> : item + 1}</b><span>{item === 0 ? "Focus" : item === 1 ? "Signals" : "Identity"}</span></i>)}</div>
+
+      {step === 0 ? <section className="model-build-step"><div className="model-question"><Target /><div><h3>What should this model specialize in?</h3><p>One model masters one type of decision. You can build as many specialists as you want.</p></div></div><span className="model-field-title">Choose a sport</span><div className="model-sport-grid">{sports.map((item) => <button className={sport === item ? "selected" : ""} onClick={() => setSport(item)} key={item}>{item}<Check /></button>)}</div><span className="model-field-title">Choose a pick category</span><div className="model-category-grid">{categories.map(([value, title, copy]) => <button className={category === value ? "selected" : ""} onClick={() => setCategory(value)} key={value}><span><strong>{title}</strong><small>{copy}</small></span><Check /></button>)}</div></section> : null}
+
+      {step === 1 ? <section className="model-build-step"><div className="model-question"><BrainCircuit /><div><h3>Which signals should earn its trust?</h3><p>Pick at least two. STRATIQA creates sensible weights automatically.</p></div></div><div className="model-factor-grid">{factorOptions.map(([value, title, copy]) => <button className={selected.includes(value) ? "selected" : ""} onClick={() => toggle(value)} key={value}><span><strong>{title}</strong><small>{copy}</small></span><Check /></button>)}</div><div className="model-primary-signal"><span><Sparkles /> Most important signal</span><select value={strategy} onChange={(event) => setStrategy(event.target.value)}>{selected.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></div></section> : null}
+
+      {step === 2 ? <section className="model-build-step"><div className="model-identity-card"><div><Sparkles /><small>MODEL ARCHETYPE</small><strong>{profile.archetype}</strong><p>{sport} · {categories.find(([value]) => value === category)?.[1]}</p></div><Gauge /><span>{profile.discipline}<small>Discipline</small></span></div><span className="model-field-title">How often should it act?</span><div className="model-risk-grid">{riskOptions.map(([value, title, copy]) => <button className={risk === value ? "selected" : ""} onClick={() => setRisk(value)} key={value}><strong>{title}</strong><small>{copy}</small><Check /></button>)}</div><label className="model-name-field"><span><Pencil /> Give it a name <small>or keep our suggestion</small></span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={60} placeholder={suggestedName} /></label><details className="model-advanced"><summary>Optional model note</summary><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} placeholder="What should future-you remember about this model?" /></details><div className="model-build-summary"><span><b>{selected.length}</b> signals</span><span><b>{label(strategy)}</b> priority</span><span><b>1500</b> starting rating</span></div></section> : null}
+
+      <footer>{step ? <Button variant="secondary" onClick={() => setStep((value) => value - 1)}><ArrowLeft /> Back</Button> : <span />}<Button disabled={!canContinue || saving} onClick={() => step < 2 ? setStep((value) => value + 1) : save()}>{saving ? "Building…" : step < 2 ? "Continue" : "Build My Model"} {step < 2 ? <ArrowRight /> : <Zap />}</Button></footer>
+    </Card>
+
+    <section className="model-roster">
+      <header><div><span className="landing-kicker">YOUR MODEL TEAM</span><h2>Build specialists. Prove them with real picks.</h2><p>Each model earns its own verified record and rating in its category.</p></div><Badge>{models.length} MODELS</Badge></header>
+      {models.length ? <div>{models.map((model) => {
+        const modelProfile = modelIdentity(model.category, model.factors, model.risk_profile);
+        return <Card key={model.id} className="model-performance-card"><header><div><BrainCircuit /><span><small>{model.sport} · {model.category.replace("_", " ")}</small><strong>{model.name}</strong></span></div><Badge tone={model.performance.verified >= 10 ? "success" : "warning"}>{model.performance.verified >= 10 ? "RATED" : "PROVISIONAL"}</Badge></header><div className="model-rating"><strong>{model.performance.rating}</strong><span>{modelProfile.archetype}<small>{model.performance.verified} verified picks</small></span></div><div className="model-record"><span><b>{model.performance.accuracy === null ? "—" : `${model.performance.accuracy}%`}</b>Accuracy</span><span><b>{model.performance.wins}-{model.performance.losses}</b>Record</span><span><b>v{model.version}</b>Version</span></div><div className="model-strengths">{model.factors.slice(0, 4).map((factor) => <span key={factor}>{label(factor)}</span>)}</div><footer><ShieldCheck /> Only provider-verified results change this model&apos;s rating</footer></Card>;
+      })}</div> : <Card className="model-empty"><BrainCircuit /><h3>Your first specialist is three simple steps away</h3><p>Choose its category, teach it what matters, and let verified picks build its reputation.</p></Card>}
+    </section>{status ? <p className="ledger-status" role="status">{status}</p> : null}
   </div>;
 }

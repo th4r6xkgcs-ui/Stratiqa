@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth/session";
+import { resolveOwnedModel } from "@/lib/models/resolve-model";
 import { picksRepository } from "@/repositories/picks";
 import { getMatchupIntelligence } from "@/services";
 
@@ -10,10 +11,10 @@ export async function POST(request: Request) {
   const book = typeof body?.book === "string" ? body.book : "";
   const line = typeof body?.line === "string" ? body.line : "";
   const stakeUnits = Number(body?.stakeUnits);
-  const attributionType = body?.attributionType === "model" ? "model" : "judgment";
-  const modelName = attributionType === "model" && typeof body?.modelName === "string" ? body.modelName.trim().slice(0, 60) : null;
+  const ownedModel = await resolveOwnedModel(user.id, body?.modelId);
+  const attributionType = ownedModel ? "model" : "judgment";
+  const modelName = ownedModel?.name ?? null;
   if (!slug || !book || !line || !Number.isFinite(stakeUnits) || stakeUnits <= 0 || stakeUnits > 10) return Response.json({ error: "Choose a valid pick and unit size." }, { status: 400 });
-  if (attributionType === "model" && !modelName) return Response.json({ error: "Name the model responsible for this pick." }, { status: 400 });
 
   const matchup = await getMatchupIntelligence(slug);
   const quote = matchup?.alternateLines.find((item) => item.book === book && item.line === line);
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       eventName: `${matchup.away} at ${matchup.home}`, selection: quote.line, market: quote.marketKey,
       sportsbook: quote.book, americanOdds: quote.price, stakeUnits, confidence: matchup.confidence,
       providerEventId: matchup.providerEventId, providerSportKey: matchup.providerSportKey, marketKey: quote.marketKey,
-      outcomeName: quote.outcomeName, linePoint: quote.point ?? null, attributionType, modelName,
+      outcomeName: quote.outcomeName, linePoint: quote.point ?? null, attributionType, modelId: ownedModel?.id ?? null, modelName,
       pickOrigin: attributionType === "model" ? "model" : "personal",
     });
     return Response.json({ pick }, { status: 201 });

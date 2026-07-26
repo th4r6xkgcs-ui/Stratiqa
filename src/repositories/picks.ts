@@ -7,15 +7,15 @@ export type TrackedPick = {
   confidence: number; result: PickResult; profitUnits: number | null; notes: string; source: "user" | "provider";
   verificationStatus: "unverified" | "pending" | "verified" | "void"; providerEventId: string | null;
   providerSportKey: string | null; marketKey: string | null; outcomeName: string | null; linePoint: number | null;
-  attributionType: "judgment" | "model"; modelName: string | null;
+  attributionType: "judgment" | "model"; modelId: string | null; modelName: string | null;
   pickOrigin: "stratiqa" | "model" | "personal";
   placedAt: string; gradedAt: string | null;
 };
-export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelName" | "pickOrigin" | "placedAt" | "gradedAt">;
+export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelId" | "modelName" | "pickOrigin" | "placedAt" | "gradedAt">;
 export type CategoryRating = { category: string; rating: number; gradedPicks: number };
 export type ProviderPick = Omit<NewPick, "notes"> & {
   providerEventId: string; providerSportKey: string; marketKey: string; outcomeName: string; linePoint: number | null;
-  attributionType: "judgment" | "model"; modelName: string | null;
+  attributionType: "judgment" | "model"; modelId: string | null; modelName: string | null;
   pickOrigin: "stratiqa" | "model" | "personal";
   pickCardId?: string | null;
   participantName?: string | null;
@@ -38,7 +38,7 @@ class DevelopmentPicksRepository implements PicksRepository {
   async list(userId: string) { return developmentStore.get(userId) ?? []; }
   async listRatings() { return []; }
   async create(userId: string, pick: NewPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelName: null, pickOrigin: "personal", placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelId: null, modelName: null, pickOrigin: "personal", placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
@@ -74,7 +74,7 @@ type PickRow = {
   verification_status?: "unverified" | "pending" | "verified" | "void"; placed_at: string; graded_at: string | null;
   provider_event_id?: string | null; provider_sport_key?: string | null; market_key?: string | null;
   outcome_name?: string | null; line_point?: number | null;
-  attribution_type?: "judgment" | "model"; model_name?: string | null;
+  attribution_type?: "judgment" | "model"; model_id?: string | null; model_name?: string | null;
   pick_origin?: "stratiqa" | "model" | "personal";
 };
 const fromRow = (row: PickRow): TrackedPick => ({
@@ -85,7 +85,7 @@ const fromRow = (row: PickRow): TrackedPick => ({
   verificationStatus: row.verification_status ?? (row.source === "provider" ? "verified" : "unverified"),
   providerEventId: row.provider_event_id ?? null, providerSportKey: row.provider_sport_key ?? null,
   marketKey: row.market_key ?? null, outcomeName: row.outcome_name ?? null, linePoint: row.line_point ?? null,
-  attributionType: row.attribution_type ?? "judgment", modelName: row.model_name ?? null,
+  attributionType: row.attribution_type ?? "judgment", modelId: row.model_id ?? null, modelName: row.model_name ?? null,
   pickOrigin: row.pick_origin ?? (row.attribution_type === "model" ? "model" : row.source === "provider" ? "stratiqa" : "personal"),
   placedAt: row.placed_at, gradedAt: row.graded_at,
 });
@@ -116,7 +116,7 @@ class SupabasePicksRepository implements PicksRepository {
   async createProvider(userId: string, pick: ProviderPick) {
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity`, {
       method: "POST", headers: this.headers({ Prefer: "return=representation" }), cache: "no-store", signal: AbortSignal.timeout(8_000),
-      body: JSON.stringify({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, attribution_type: pick.attributionType, model_name: pick.modelName, pick_origin: pick.pickOrigin, locked_at: new Date().toISOString(), placed_at: new Date().toISOString() }),
+      body: JSON.stringify({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, attribution_type: pick.attributionType, model_id: pick.modelId, model_name: pick.modelName, pick_origin: pick.pickOrigin, locked_at: new Date().toISOString(), placed_at: new Date().toISOString() }),
     });
     if (!response.ok) throw new Error(`Pick storage responded with ${response.status}`);
     return fromRow((await response.json() as PickRow[])[0]);
@@ -124,7 +124,7 @@ class SupabasePicksRepository implements PicksRepository {
   async createProviderBatch(userId: string, picks: ProviderPick[]) {
     const now = new Date().toISOString();
     const cardId = crypto.randomUUID();
-    const rows = picks.map((pick) => ({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, participant_name: pick.participantName ?? null, attribution_type: pick.attributionType, model_name: pick.modelName, pick_origin: pick.pickOrigin, pick_card_id: pick.pickCardId ?? cardId, locked_at: now, placed_at: now }));
+    const rows = picks.map((pick) => ({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, participant_name: pick.participantName ?? null, attribution_type: pick.attributionType, model_id: pick.modelId, model_name: pick.modelName, pick_origin: pick.pickOrigin, pick_card_id: pick.pickCardId ?? cardId, locked_at: now, placed_at: now }));
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity`, { method: "POST", headers: this.headers({ Prefer: "return=representation" }), cache: "no-store", signal: AbortSignal.timeout(8_000), body: JSON.stringify(rows) });
     if (!response.ok) throw new Error(`Pick storage responded with ${response.status}`);
     return (await response.json() as PickRow[]).map(fromRow);
