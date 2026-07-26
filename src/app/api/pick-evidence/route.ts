@@ -42,5 +42,5 @@ export async function POST(request: Request) {
     if (objectPath) await fetch(`${url}/storage/v1/object/pick-evidence/${objectPath}`, { method: "DELETE", headers });
     return Response.json({ error: insert.status === 409 ? "That ticket or screenshot was already submitted." : "The evidence could not be recorded." }, { status: insert.status === 409 ? 409 : 503 });
   }
-  return Response.json({ evidence: (await insert.json() as unknown[])[0], message: "Submitted for independent verification. It cannot affect ratings yet." }, { status: 201 });
+  return Response.json({ evidence: (await insert.json() as unknown[])[0], message: "Submitted for independent verification of your real-world financial stats." }, { status: 201 });
 }

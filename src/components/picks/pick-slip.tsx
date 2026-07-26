@@ -50,7 +50,7 @@ export function PickSlip() {
     });
     const result = await response.json(); setSaving(false);
     if (!response.ok) return setStatus(result.error);
-    setStatus(`${result.picks.length} pick${result.picks.length === 1 ? "" : "s"} locked. Add sportsbook proof in My Picks to pursue certification.`);
+    setStatus(`${result.picks.length} pick${result.picks.length === 1 ? "" : "s"} locked for STRATIQA ratings. Sportsbook proof is optional.`);
     setLegs([]);
   }
   const remove = (id: string) => setLegs((current) => current.filter((leg) => leg.id !== id));
@@ -61,7 +61,7 @@ export function PickSlip() {
       {legs.length ? <>
         <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>{leg.book}<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>MY PICK</em>{leg.modelName ? <em>MODEL ANALYSIS · {leg.modelName}</em> : null}{!leg.live ? <em>DEMO · NOT TRACKABLE</em> : <em className="verified"><ShieldCheck /> LIVE LINE LOCK</em>}</div></article>)}</div>
         <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>Overall confidence<b>{analysis.confidence}%</b></span><span>Average EV<b>+{analysis.ev.toFixed(1)}%</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
-        <p className="slip-origin-note"><ShieldCheck /> Every selection is your pick. Locking preserves the line; sportsbook evidence is required afterward before it can affect ratings.</p>
+        <p className="slip-origin-note"><ShieldCheck /> Every selection is your pick. Locking preserves the line for ratings; optional sportsbook proof confirms real-world financial stats.</p>
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
         {analysis.correlated ? <p className="slip-note"><AlertTriangle /> This card contains selections from the same event. Confidence and automatic sizing are reduced.</p> : null}

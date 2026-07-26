@@ -12,9 +12,10 @@ export type TrackedPick = {
   coachRecommendationId: string | null;
   certificationStatus: "tracked" | "evidence_pending" | "certified" | "rejected";
   eventCommenceAt: string | null;
+  realStakeAmount: number | null; realPayoutAmount: number | null; realProfitAmount: number | null;
   placedAt: string; gradedAt: string | null;
 };
-export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "certificationStatus" | "eventCommenceAt" | "placedAt" | "gradedAt">;
+export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "certificationStatus" | "eventCommenceAt" | "realStakeAmount" | "realPayoutAmount" | "realProfitAmount" | "placedAt" | "gradedAt">;
 export type CategoryRating = { category: string; rating: number; gradedPicks: number };
 export type ProviderPick = Omit<NewPick, "notes"> & {
   providerEventId: string; providerSportKey: string; marketKey: string; outcomeName: string; linePoint: number | null;
@@ -43,12 +44,12 @@ class DevelopmentPicksRepository implements PicksRepository {
   async list(userId: string) { return developmentStore.get(userId) ?? []; }
   async listRatings() { return []; }
   async create(userId: string, pick: NewPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, certificationStatus: "tracked", eventCommenceAt: null, placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, certificationStatus: "tracked", eventCommenceAt: null, realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
   async createProvider(userId: string, pick: ProviderPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, notes: "", closingOdds: null, result: "pending", profitUnits: null, source: "provider", verificationStatus: "pending", certificationStatus: "tracked", placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, notes: "", closingOdds: null, result: "pending", profitUnits: null, source: "provider", verificationStatus: "pending", certificationStatus: "tracked", realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
@@ -84,6 +85,7 @@ type PickRow = {
   coach_recommendation_id?: string | null;
   certification_status?: "tracked" | "evidence_pending" | "certified" | "rejected";
   event_commence_at?: string | null;
+  real_stake_amount?: number | null; real_payout_amount?: number | null; real_profit_amount?: number | null;
 };
 const fromRow = (row: PickRow): TrackedPick => ({
   id: row.id, userId: row.user_id, sport: row.sport, category: row.category, eventName: row.event_name,
@@ -97,6 +99,9 @@ const fromRow = (row: PickRow): TrackedPick => ({
   pickOrigin: row.pick_origin ?? (row.attribution_type === "model" ? "model" : "personal"),
   coachRecommendationId: row.coach_recommendation_id ?? null,
   certificationStatus: row.certification_status ?? "tracked", eventCommenceAt: row.event_commence_at ?? null,
+  realStakeAmount: row.real_stake_amount == null ? null : Number(row.real_stake_amount),
+  realPayoutAmount: row.real_payout_amount == null ? null : Number(row.real_payout_amount),
+  realProfitAmount: row.real_profit_amount == null ? null : Number(row.real_profit_amount),
   placedAt: row.placed_at, gradedAt: row.graded_at,
 });
 

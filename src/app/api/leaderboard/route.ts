@@ -14,6 +14,6 @@ export async function GET(request: Request) {
       requested_region: params.get("region") || null, requested_locality: params.get("locality") || null, result_limit: 50,
     }),
   });
-  if (!response.ok) return Response.json({ error: "Certified rankings are temporarily unavailable." }, { status: 503 });
+  if (!response.ok) return Response.json({ error: "Competitive rankings are temporarily unavailable." }, { status: 503 });
   return Response.json({ leaders: await response.json() });
 }

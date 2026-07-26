@@ -29,11 +29,11 @@ export function AddPickLauncher() {
         <Link href="/matchups" onClick={() => setOpen(false)}><i><Target /></i><span><strong>Lock a pick from the live board</strong><small>Preserves the line before you submit sportsbook proof</small></span><BadgeText>STEP 1</BadgeText><ArrowRight /></Link>
         <button onClick={() => setMode("screenshot")}><i><Camera /></i><span><strong>Upload bet slip</strong><small>Import a screenshot for matching</small></span><BadgeText pending>PENDING</BadgeText><ArrowRight /></button>
         <button onClick={() => setMode("ticket")}><i><ScanLine /></i><span><strong>Enter ticket ID</strong><small>Submit sportsbook evidence</small></span><BadgeText pending>PENDING</BadgeText><ArrowRight /></button>
-        <p><ShieldCheck /> Only independently matched sportsbook proof earns certification and changes ratings.</p>
+        <p><ShieldCheck /> Every locked pick affects ratings. Optional sportsbook proof unlocks confirmed real-money stats.</p>
       </div> : <form className="ticket-import" onSubmit={submit}>
         <button type="button" onClick={() => setMode("choose")}>← Back</button>
         <h2>{mode === "screenshot" ? "Upload your bet slip" : "Enter a ticket ID"}</h2>
-        <p>Connect proof to the exact pick you locked. It stays rating-ineligible while independently matched.</p>
+        <p>Connect proof to the exact pick you locked to confirm real-world stake, payout, profit, and ROI.</p>
         <label>Locked pick<select name="pickId" required value={selectedPickId} onChange={(event) => setSelectedPickId(event.target.value)}><option value="" disabled>Select a pick</option>{picks.map((pick) => <option value={pick.id} key={pick.id}>{pick.selection} · {pick.sportsbook}</option>)}</select></label>
         {picks.length ? null : <p className="ticket-status">Lock a live line first, then return here with sportsbook proof.</p>}
         <label>Sportsbook<input name="sportsbook" value={selectedPick?.sportsbook ?? ""} readOnly placeholder="Set by your locked pick" /></label>
