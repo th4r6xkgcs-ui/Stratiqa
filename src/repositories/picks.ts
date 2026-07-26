@@ -10,15 +10,18 @@ export type TrackedPick = {
   attributionType: "judgment" | "model"; modelId: string | null; modelVersion: number | null; modelName: string | null;
   pickOrigin: "stratiqa" | "model" | "personal";
   coachRecommendationId: string | null;
+  certificationStatus: "tracked" | "evidence_pending" | "certified" | "rejected";
+  eventCommenceAt: string | null;
   placedAt: string; gradedAt: string | null;
 };
-export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "placedAt" | "gradedAt">;
+export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "certificationStatus" | "eventCommenceAt" | "placedAt" | "gradedAt">;
 export type CategoryRating = { category: string; rating: number; gradedPicks: number };
 export type ProviderPick = Omit<NewPick, "notes"> & {
   providerEventId: string; providerSportKey: string; marketKey: string; outcomeName: string; linePoint: number | null;
   attributionType: "judgment" | "model"; modelId: string | null; modelVersion: number | null; modelName: string | null;
   pickOrigin: "stratiqa" | "model" | "personal";
   coachRecommendationId: string | null;
+  eventCommenceAt: string | null;
   pickCardId?: string | null;
   participantName?: string | null;
 };
@@ -40,12 +43,12 @@ class DevelopmentPicksRepository implements PicksRepository {
   async list(userId: string) { return developmentStore.get(userId) ?? []; }
   async listRatings() { return []; }
   async create(userId: string, pick: NewPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, certificationStatus: "tracked", eventCommenceAt: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
   async createProvider(userId: string, pick: ProviderPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, notes: "", closingOdds: null, result: "pending", profitUnits: null, source: "provider", verificationStatus: "pending", placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, notes: "", closingOdds: null, result: "pending", profitUnits: null, source: "provider", verificationStatus: "pending", certificationStatus: "tracked", placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
@@ -79,6 +82,8 @@ type PickRow = {
   attribution_type?: "judgment" | "model"; model_id?: string | null; model_version?: number | null; model_name?: string | null;
   pick_origin?: "stratiqa" | "model" | "personal";
   coach_recommendation_id?: string | null;
+  certification_status?: "tracked" | "evidence_pending" | "certified" | "rejected";
+  event_commence_at?: string | null;
 };
 const fromRow = (row: PickRow): TrackedPick => ({
   id: row.id, userId: row.user_id, sport: row.sport, category: row.category, eventName: row.event_name,
@@ -91,6 +96,7 @@ const fromRow = (row: PickRow): TrackedPick => ({
   attributionType: row.attribution_type ?? "judgment", modelId: row.model_id ?? null, modelVersion: row.model_version ?? null, modelName: row.model_name ?? null,
   pickOrigin: row.pick_origin ?? (row.attribution_type === "model" ? "model" : "personal"),
   coachRecommendationId: row.coach_recommendation_id ?? null,
+  certificationStatus: row.certification_status ?? "tracked", eventCommenceAt: row.event_commence_at ?? null,
   placedAt: row.placed_at, gradedAt: row.graded_at,
 });
 
@@ -120,7 +126,7 @@ class SupabasePicksRepository implements PicksRepository {
   async createProvider(userId: string, pick: ProviderPick) {
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity`, {
       method: "POST", headers: this.headers({ Prefer: "return=representation" }), cache: "no-store", signal: AbortSignal.timeout(8_000),
-      body: JSON.stringify({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, attribution_type: pick.attributionType, model_id: pick.modelId, model_version: pick.modelVersion, model_name: pick.modelName, pick_origin: pick.pickOrigin, coach_recommendation_id: pick.coachRecommendationId, locked_at: new Date().toISOString(), placed_at: new Date().toISOString() }),
+      body: JSON.stringify({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", certification_status: "tracked", event_commence_at: pick.eventCommenceAt, provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, attribution_type: pick.attributionType, model_id: pick.modelId, model_version: pick.modelVersion, model_name: pick.modelName, pick_origin: "personal", coach_recommendation_id: null, locked_at: new Date().toISOString(), placed_at: new Date().toISOString() }),
     });
     if (!response.ok) throw new Error(`Pick storage responded with ${response.status}`);
     return fromRow((await response.json() as PickRow[])[0]);
@@ -128,7 +134,7 @@ class SupabasePicksRepository implements PicksRepository {
   async createProviderBatch(userId: string, picks: ProviderPick[]) {
     const now = new Date().toISOString();
     const cardId = crypto.randomUUID();
-    const rows = picks.map((pick) => ({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, participant_name: pick.participantName ?? null, attribution_type: pick.attributionType, model_id: pick.modelId, model_version: pick.modelVersion, model_name: pick.modelName, pick_origin: pick.pickOrigin, coach_recommendation_id: pick.coachRecommendationId, pick_card_id: pick.pickCardId ?? cardId, locked_at: now, placed_at: now }));
+    const rows = picks.map((pick) => ({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", certification_status: "tracked", event_commence_at: pick.eventCommenceAt, provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, participant_name: pick.participantName ?? null, attribution_type: pick.attributionType, model_id: pick.modelId, model_version: pick.modelVersion, model_name: pick.modelName, pick_origin: "personal", coach_recommendation_id: null, pick_card_id: pick.pickCardId ?? cardId, locked_at: now, placed_at: now }));
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity`, { method: "POST", headers: this.headers({ Prefer: "return=representation" }), cache: "no-store", signal: AbortSignal.timeout(8_000), body: JSON.stringify(rows) });
     if (!response.ok) throw new Error(`Pick storage responded with ${response.status}`);
     return (await response.json() as PickRow[]).map(fromRow);

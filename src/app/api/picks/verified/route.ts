@@ -33,8 +33,9 @@ export async function POST(request: Request) {
       sportsbook: quote.book, americanOdds: quote.price, stakeUnits, confidence: matchup.confidence,
       providerEventId: matchup.providerEventId, providerSportKey: matchup.providerSportKey, marketKey: quote.marketKey,
       outcomeName: quote.outcomeName, linePoint: quote.point ?? null, attributionType, modelId: ownedModel?.id ?? null, modelVersion: ownedModel?.version ?? null, modelName,
-      pickOrigin: attributionType === "model" ? "model" : "personal",
+      pickOrigin: "personal",
       coachRecommendationId: null,
+      eventCommenceAt: matchup.providerCommenceTime,
     });
     return Response.json({ pick }, { status: 201 });
   } catch (error) {

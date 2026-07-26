@@ -23,7 +23,7 @@ const ranks = [
 
 function ratingFromPicks(picks: TrackedPick[]) {
   return Math.round(picks
-    .filter((pick) => pick.verificationStatus === "verified")
+    .filter((pick) => pick.certificationStatus === "certified" && pick.verificationStatus === "verified")
     .reduce((rating, pick) => {
       if (pick.result === "push") return rating;
       const expected = pick.americanOdds > 0 ? 100 / (pick.americanOdds + 100) : Math.abs(pick.americanOdds) / (Math.abs(pick.americanOdds) + 100);
@@ -64,7 +64,7 @@ export function PickLedger() {
   }, []);
 
   const summary = useMemo(() => {
-    const verified = picks.filter((pick) => pick.verificationStatus === "verified" && pick.result !== "pending");
+    const verified = picks.filter((pick) => pick.certificationStatus === "certified" && pick.verificationStatus === "verified" && pick.result !== "pending");
     const wins = verified.filter((pick) => pick.result === "win").length;
     const decisions = verified.filter((pick) => pick.result === "win" || pick.result === "loss").length;
     const ratedSamples = ratings.reduce((sum, item) => sum + item.gradedPicks, 0);
@@ -102,42 +102,42 @@ export function PickLedger() {
       <section className="pick-rating-grid">
         <Card className="pick-rating-card">
           <div className="rating-glow" style={{ background: summary.rank.color }} />
-          <header><span><Trophy /> PICK RATING</span><Badge tone={summary.verified >= 25 ? "success" : "warning"}>{summary.verified >= 25 ? "VERIFIED" : "PROVISIONAL"}</Badge></header>
+          <header><span><Trophy /> PICK RATING</span><Badge tone={summary.verified >= 25 ? "success" : "warning"}>{summary.verified >= 25 ? "RANKED" : "PROVISIONAL"}</Badge></header>
           <div className="rating-score"><strong>{summary.rating}</strong><span style={{ color: summary.rank.color }}>{summary.rank.name}</span></div>
           <div className="rank-progress">
             <div><span>{summary.rank.name}</span><small>{summary.next === summary.rank ? "Top rank achieved" : `${summary.next.floor - summary.rating} points to ${summary.next.name}`}</small></div>
             <i><em style={{ width: `${summary.progress}%`, background: summary.rank.color }} /></i>
           </div>
-          <p><Sparkles /> Complete {Math.max(0, 25 - summary.verified)} more verified picks to unlock full rankings.</p>
+          <p><Sparkles /> Complete {Math.max(0, 25 - summary.verified)} more certified picks to unlock full rankings.</p>
         </Card>
 
         <Card className="pick-next-card">
           <span className="landing-kicker">YOUR NEXT MOVE</span>
           <h2>Make a pick. Build your game.</h2>
-          <p>Choose from live STRATIQA matchups. We lock the line, verify the result, and explain every rating change.</p>
-          <Link href="/matchups"><Zap /> Find a verified pick <ArrowRight /></Link>
+          <p>Choose a live line, lock it, then match sportsbook proof. Certified results build your rating automatically.</p>
+          <Link href="/matchups"><Zap /> Find a live pick <ArrowRight /></Link>
           <small><LockKeyhole /> Results are settled automatically—you never grade yourself.</small>
         </Card>
       </section>
 
       <section className="pick-stats-strip">
-        <div><strong>{summary.verified}</strong><span>Verified picks</span></div>
+        <div><strong>{summary.verified}</strong><span>Certified picks</span></div>
         <div><strong>{summary.decisions ? `${(summary.wins / summary.decisions * 100).toFixed(0)}%` : "—"}</strong><span>Accuracy</span></div>
         <div><strong className={summary.profit >= 0 ? "positive" : "negative"}>{summary.profit >= 0 ? "+" : ""}{summary.profit.toFixed(1)}u</strong><span>Net units</span></div>
-        <div><strong>{summary.verified ? `${summary.roi.toFixed(1)}%` : "—"}</strong><span>Verified ROI</span></div>
+        <div><strong>{summary.verified ? `${summary.roi.toFixed(1)}%` : "—"}</strong><span>Certified ROI</span></div>
       </section>
 
       <div className="pick-content-grid">
         <Card className="pick-history">
           <header><span><Clock3 /> Recent picks</span><Badge>{picks.length}</Badge></header>
           {picks.length ? <div>{picks.map((pick) => {
-            const verified = pick.verificationStatus === "verified";
-            const review = pick.result === "win" ? "Great pick" : pick.result === "loss" ? "Review the read" : pick.result === "push" ? "Even result" : "Waiting";
+            const certified = pick.certificationStatus === "certified";
+            const verified = certified && pick.verificationStatus === "verified";
             const rating = ratingReview(pick);
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
-              <div className="pick-result-copy"><small>{pick.pickOrigin === "model" ? `My model${pick.modelName ? ` · ${pick.modelName}` : ""}` : pick.pickOrigin === "stratiqa" ? "AI Coach pick" : "My pick"} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
-              <div className="pick-result-review"><strong>{review}</strong><small>{verified ? rating.detail : pick.verificationStatus === "pending" ? "Auto-settlement pending" : "Practice journal"}</small></div>
+              <div className="pick-result-copy"><small>My pick{pick.modelName ? ` · Analyzed by ${pick.modelName} v${pick.modelVersion ?? 1}` : ""} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
+              <div className="pick-result-review"><strong>{certified ? "STRATIQA Certified" : pick.certificationStatus === "evidence_pending" ? "Certification pending" : pick.certificationStatus === "rejected" ? "Evidence rejected" : "Proof needed"}</strong><small>{verified ? rating.detail : certified ? "Automatic result pending" : "Does not affect ratings yet"}</small></div>
               <div className="pick-result-rating">{verified ? <><b>{rating.impact}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;
           })}</div> : <div className="ledger-empty"><Target /><strong>Your journey starts with one pick</strong><p>Open Matchups, find a position you believe in, and start building your verified rating.</p><Link href="/matchups">Explore matchups <ArrowRight /></Link></div>}
@@ -162,7 +162,7 @@ export function PickLedger() {
           </details>
           <Card className="rating-guide">
             <header><Trophy /> How ratings work</header>
-            <p>Verified wins move you up. Losses move you down. Your stake size never changes rating points.</p>
+            <p>Certified results move your rating. Your stake size never changes rating points, so volume cannot buy rank.</p>
             <div><span><i className="guide-win">W</i> Beat a tough line</span><b>More points</b></div>
             <div><span><i className="guide-loss">L</i> Miss an expected win</span><b>More risk</b></div>
             <div><span><i className="guide-push">P</i> Push or void</span><b>No change</b></div>
