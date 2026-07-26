@@ -1,8 +1,8 @@
 import "server-only";
 import { MockInjuriesProvider } from "./injuries-provider";
 import { MockLineMovementProvider } from "./line-movement-provider";
-import { MockOddsProvider } from "./odds-provider";
-import { MockPropsProvider } from "./props-provider";
+import { LiveOddsProvider, MockOddsProvider } from "./odds-provider";
+import { FallbackPropsProvider, MultiSportPropsProvider, MockPropsProvider } from "./props-provider";
 import { MockStandingsProvider } from "./standings-provider";
 import { MockStatsProvider } from "./stats-provider";
 import { MockWeatherProvider } from "./weather-provider";
@@ -10,13 +10,24 @@ import { ResilientProvider } from "./runtime";
 import { getProviderEnvironment } from "./environment";
 import type { MatchupIntelligence, ProviderHealth } from "./types";
 
+const environment = getProviderEnvironment();
+const oddsSource = environment.mode === "live"
+  ? new LiveOddsProvider(process.env.STRATIQA_ODDS_API_KEY!)
+  : new MockOddsProvider();
+const propsSource = environment.mode === "live"
+  ? new FallbackPropsProvider(new MultiSportPropsProvider(
+      process.env.STRATIQA_ODDS_API_KEY!,
+      (process.env.STRATIQA_PROPS_SPORTS ?? "baseball_mlb,basketball_nba,americanfootball_nfl,icehockey_nhl,basketball_wnba").split(",").map((sport) => sport.trim()),
+    ))
+  : new MockPropsProvider();
+
 export const providers = {
-  odds: new ResilientProvider("odds", new MockOddsProvider()),
+  odds: new ResilientProvider("odds", oddsSource),
   weather: new ResilientProvider("weather", new MockWeatherProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
   injuries: new ResilientProvider("injuries", new MockInjuriesProvider()),
   standings: new ResilientProvider("standings", new MockStandingsProvider(), { ttlMs: 300_000, staleMs: 1_800_000, retries: 2 }),
   stats: new ResilientProvider("stats", new MockStatsProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
-  props: new ResilientProvider("props", new MockPropsProvider()),
+  props: new ResilientProvider("props", propsSource, { ttlMs: 60_000, staleMs: 600_000, retries: 0 }),
   lineMovement: new ResilientProvider("lineMovement", new MockLineMovementProvider()),
 };
 
@@ -61,6 +72,9 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
     bullpenEdge: resolvedStats.bullpenEdge, startingPitchingEdge: resolvedStats.starterEdge,
     recentForm: resolvedStats.recentForm, bestSportsbook: resolvedQuote.bestBook,
     alternateLines: resolvedQuote.quotes, market: resolvedMarket,
+    providerEventId: quote?.providerEventId ?? null, providerSportKey: quote?.providerSportKey ?? null,
+    providerCommenceTime: quote?.commenceTime ?? null,
+    providerMode: odds.mode,
     reasoning: [
       { title: "Pitching matchup", summary: `${resolvedStats.starterEdge > 10 ? "Material" : "Moderate"} starter advantage`, detail: `Park-adjusted starter projections create a ${resolvedStats.starterEdge.toFixed(1)}% edge after workload and platoon adjustments.`, score: resolvedStats.starterEdge },
       { title: "Bullpen leverage", summary: "Late-inning depth favors the model side", detail: `Rest, leverage usage, and reliever quality combine for a ${resolvedStats.bullpenEdge.toFixed(1)}% bullpen advantage.`, score: resolvedStats.bullpenEdge },

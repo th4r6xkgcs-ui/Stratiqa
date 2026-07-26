@@ -1,0 +1,63 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { buildPlaystyleArchetype } from "../src/lib/profile/archetype.ts";
+
+test("creates a prop archetype from a prop-focused profile", () => {
+  const result = buildPlaystyleArchetype({ goal: "Research player props", risk: "aggressive", leagueCount: 4, sportsbookCount: 1 });
+  assert.equal(result.name, "The Prop Savant");
+  assert.equal(Object.values(result.dimensions).reduce((sum, value) => sum + value, 0), 100);
+});
+
+test("changes archetype as playstyle preferences change", () => {
+  const selective = buildPlaystyleArchetype({ goal: "Understand predictions", risk: "conservative", leagueCount: 1, sportsbookCount: 0 });
+  const market = buildPlaystyleArchetype({ goal: "Compare sportsbook lines", risk: "balanced", leagueCount: 1, sportsbookCount: 5 });
+  assert.equal(selective.name, "The Edge Forger");
+  assert.equal(market.name, "The Market Warden");
+});
+
+test("combines style and trust signals into a special hybrid identity", () => {
+  const result = buildPlaystyleArchetype({
+    goal: "Find the best value",
+    risk: "aggressive",
+    style: "Contrarian",
+    traits: ["Market movement", "Contrarian signals"],
+    leagueCount: 3,
+    sportsbookCount: 4,
+  });
+  assert.equal(result.name, "The Public Fade");
+  assert.ok(result.dimensions.Market > 20);
+});
+
+test("creates distinct identities from style and dimension combinations", () => {
+  const patient = buildPlaystyleArchetype({ goal: "Understand predictions", risk: "conservative", style: "Patient & precise", traits: ["Model confidence"], leagueCount: 1, sportsbookCount: 0 });
+  const data = buildPlaystyleArchetype({ goal: "Research player props", risk: "conservative", style: "Data-first", traits: ["Player trends"], leagueCount: 2, sportsbookCount: 1 });
+  const upside = buildPlaystyleArchetype({ goal: "Research player props", risk: "aggressive", style: "High-upside explorer", traits: ["Best available price"], leagueCount: 4, sportsbookCount: 2 });
+  assert.equal(patient.name, "The Iron Thesis");
+  assert.equal(data.name, "The Model Savant");
+  assert.equal(upside.name, "The Ceiling Architect");
+  assert.equal(patient.stage, "Origin profile");
+  assert.ok(patient.drivers.includes("Patient & precise"));
+});
+
+test("every profile produces calibrated category ratings", () => {
+  const result = buildPlaystyleArchetype({ goal: "Research player props", risk: "balanced", style: "Data-first", traits: ["Player trends"], leagueCount: 3, sportsbookCount: 2 });
+  assert.equal(Object.keys(result.categoryRatings).length, 6);
+  assert.ok(result.categoryRatings["Prop IQ"] > result.categoryRatings["Market Timing"]);
+  assert.ok(Object.values(result.categoryRatings).every((rating) => rating >= 25 && rating <= 99));
+});
+
+test("blends multiple objectives and playstyles into a wider identity", () => {
+  const result = buildPlaystyleArchetype({
+    goal: "Find the best value",
+    goals: ["Find the best value", "Find upset opportunities", "Manage risk and discipline"],
+    risk: "balanced",
+    style: "Patient & precise",
+    styles: ["Patient & precise", "Contrarian"],
+    traits: ["Model confidence", "Contrarian signals"],
+    leagueCount: 3,
+    sportsbookCount: 2,
+  });
+  assert.equal(result.name, "The Silent Rebel");
+  assert.ok(result.drivers.includes("Contrarian"));
+  assert.equal(Object.values(result.dimensions).reduce((sum, value) => sum + value, 0), 100);
+});

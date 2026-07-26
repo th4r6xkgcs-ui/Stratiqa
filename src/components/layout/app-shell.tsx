@@ -7,42 +7,37 @@ import {
   Bell,
   ChartNoAxesCombined,
   ChevronRight,
-  Crown,
-  Flame,
   FlaskConical,
   Gauge,
   Menu,
   Search,
-  Settings,
-  Shield,
   Sparkles,
   Target,
   Trophy,
   UserRound,
-  Users,
 } from "lucide-react";
 import { useState } from "react";
+import { AddPickLauncher } from "@/components/picks/add-pick-launcher";
+import { PickSlip } from "@/components/picks/pick-slip";
 
 const navigation = [
-  { label: "Dashboard", href: "/dashboard", icon: Gauge },
-  { label: "AI Coach", href: "/coach", icon: Sparkles, badge: "V15" },
-  { label: "Matchups", href: "/matchups", icon: Target },
-  { label: "Teams", href: "/teams", icon: Shield },
-  { label: "Players", href: "/players", icon: UserRound },
-  { label: "Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
+  { label: "Home", href: "/dashboard", icon: Gauge },
+  { label: "Find Picks", href: "/matchups", icon: Target },
+  { label: "Player Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
+  { label: "My Performance", href: "/picks", icon: Trophy, badge: "RATING" },
+];
+
+const intelligence = [
+  { label: "AI Coach", href: "/coach", icon: Sparkles, badge: "AI" },
+  { label: "Model Lab", href: "/lab", icon: FlaskConical },
 ];
 
 const community = [
-  { label: "Community", href: "/community", icon: Sparkles, badge: "NEW" },
-  { label: "Friends", href: "/friends", icon: Users },
   { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
-  { label: "Groups", href: "/groups", icon: Users },
 ];
 
 const tools = [
-  { label: "Alerts", href: "/alerts", icon: Bell, badge: "3" },
-  { label: "Stratiqa Lab", href: "/lab", icon: FlaskConical },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Account & Privacy", href: "/account", icon: UserRound },
 ];
 
 function NavGroup({
@@ -94,23 +89,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <small>Smarter models. Better decisions.</small>
         </Link>
 
-        <Link href="/analysts/heriberto" className="sidebar-profile">
+        <Link href="/picks" className="sidebar-profile" onClick={() => setOpen(false)}>
           <header>
-            <div className="sidebar-avatar"><span>H</span><i /></div>
-            <div><strong>Heriberto <b>✓</b></strong><span>Founding Member</span><em><Crown size={11} /> Elite Analyst</em></div>
+            <div className="sidebar-performance-icon"><Trophy /></div>
+            <div><strong>My Performance</strong><span>Rating & records</span><em>UPDATED AUTOMATICALLY</em></div>
           </header>
-          <div className="sidebar-rating">
-            <div><strong>2724</strong><span>RATING</span></div>
-            <div><strong>▲ 42</strong><span>THIS WEEK</span></div>
-          </div>
-          <div className="sidebar-rank"><strong>Top 2%</strong><span>of all analysts</span><i /></div>
-          <div className="profile-link">View Profile <ChevronRight size={15} /></div>
+          <p className="sidebar-performance-copy">See your rating, strongest categories, parlays, and confirmed results.</p>
+          <div className="profile-link">Open performance <ChevronRight size={15} /></div>
         </Link>
 
         <nav>
           <NavGroup items={navigation} onNavigate={() => setOpen(false)} />
-          <NavGroup label="ANALYST HUB" items={community} onNavigate={() => setOpen(false)} />
-          <NavGroup label="TOOLS" items={tools} onNavigate={() => setOpen(false)} />
+          <NavGroup label="INTELLIGENCE" items={intelligence} onNavigate={() => setOpen(false)} />
+          <NavGroup label="COMMUNITY" items={community} onNavigate={() => setOpen(false)} />
+          <NavGroup label="ACCOUNT" items={tools} onNavigate={() => setOpen(false)} />
         </nav>
 
         <div className="membership">
@@ -131,18 +123,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <kbd>Ctrl K</kbd>
           </label>
           <div className="topbar-actions">
+            <AddPickLauncher />
             <span className="live-pill"><i /> LIVE</span>
-            <button aria-label="Notifications"><Bell size={20} /><b>3</b></button>
-            <span className="streak"><Flame size={20} /> 18</span>
-            <Link href="/account" className="top-avatar" aria-label="Account and preferences"><Image src="/analyst-heriberto.png" alt="Heriberto" width={42} height={42} /><i /></Link>
+            <Link href="/dashboard#updates" aria-label="Notifications"><Bell size={20} /></Link>
+            <Link href="/account" className="top-avatar" aria-label="Account and preferences"><Image src="/analyst-heriberto.png" alt="Account profile" width={42} height={42} /><i /></Link>
           </div>
         </header>
         <main className="content">{children}</main>
         <footer className="system-footer">
-          <div><span>Model Refresh: 17s ago</span><span>Odds Sync: 23s ago</span><span>Last Injury Feed: Just now</span></div>
-          <div><strong>STRATIQA v15.3</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
+          <div><span>Automatic settlement</span><span>Verified ratings</span><span>Privacy controls active</span></div>
+          <div><strong>STRATIQA v16.2</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
+      <nav className="mobile-bottom-nav" aria-label="Primary mobile navigation">
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+            <Icon />
+            <span>{item.label === "My Performance" ? "Performance" : item.label}</span>
+          </Link>;
+        })}
+      </nav>
+      <PickSlip />
     </div>
   );
 }

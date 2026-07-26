@@ -1,3 +1,5 @@
+"use client";
+
 import { AlertTriangle, BrainCircuit, CheckCircle2 } from "lucide-react";
 import type { CoachReply } from "@/lib/intelligence/types";
 import { ReasoningCard } from "@/components/intelligence/reasoning-card";

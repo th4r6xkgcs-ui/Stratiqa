@@ -39,6 +39,6 @@ export async function answerCoach(prompt: CoachPrompt): Promise<CoachReply> {
     reasoning: edge?.reasons.map((reason, index) => ({ title: `Signal ${index + 1}`, detail: reason })) ?? [],
     alternatives: snapshot.edges.filter((item) => item.id !== edge?.id).slice(0, 2).map((item) => ({ selection: item.selection, expectedValue: item.expectedValue, confidence: item.confidence })),
     followUps: ["Explain today's top play", "Find another edge", "Safest bet today", "Biggest upset chance", "Best value play", "Show best props"],
-    snapshot,
+    snapshot, recommendation: edge,
   };
 }
