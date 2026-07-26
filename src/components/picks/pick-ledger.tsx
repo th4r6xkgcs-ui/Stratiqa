@@ -177,7 +177,7 @@ export function PickLedger() {
           </article>;
         })}</div>
         <p>Each leg keeps its category record. The complete card separately builds your Parlay rating.</p>
-      </Card> : null}
+      </Card> : <Card className="parlay-record parlay-record-empty" id="parlays"><header><span><Trophy /> Parlay cards</span><Badge>0</Badge></header><div className="specialties-empty"><Target /><span><strong>No parlays tracked yet</strong><small>Build a multi-leg slip and lock it to begin your separate Parlay rating.</small></span></div></Card>}
 
       <div className="pick-content-grid">
         <Card className="pick-history" id="history">

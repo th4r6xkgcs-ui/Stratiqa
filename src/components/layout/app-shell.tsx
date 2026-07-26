@@ -11,8 +11,6 @@ import {
   Gauge,
   Menu,
   Search,
-  Settings,
-  Shield,
   Sparkles,
   Target,
   Trophy,
@@ -32,18 +30,14 @@ const navigation = [
 const intelligence = [
   { label: "AI Coach", href: "/coach", icon: Sparkles, badge: "AI" },
   { label: "Model Lab", href: "/lab", icon: FlaskConical },
-  { label: "Teams", href: "/teams", icon: Shield },
-  { label: "Players", href: "/players", icon: UserRound },
-  { label: "Alerts", href: "/alerts", icon: Bell, badge: "3" },
 ];
 
 const community = [
-  { label: "Community", href: "/community", icon: Sparkles, badge: "NEW" },
   { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
 ];
 
 const tools = [
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Account & Privacy", href: "/account", icon: UserRound },
 ];
 
 function NavGroup({
@@ -132,7 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <AddPickLauncher />
             <span className="live-pill"><i /> LIVE</span>
             <Link href="/dashboard#updates" aria-label="Notifications"><Bell size={20} /></Link>
-            <Link href="/account" className="top-avatar" aria-label="Account and preferences"><Image src="/analyst-heriberto.png" alt="Heriberto" width={42} height={42} /><i /></Link>
+            <Link href="/account" className="top-avatar" aria-label="Account and preferences"><Image src="/analyst-heriberto.png" alt="Account profile" width={42} height={42} /><i /></Link>
           </div>
         </header>
         <main className="content">{children}</main>
