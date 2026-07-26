@@ -24,11 +24,11 @@ export function AddPickLauncher() {
   return <>
     <button className="add-pick-global" onClick={launch}><Plus /> <span>Add Pick</span></button>
     {open ? <div className="add-pick-backdrop"><section className="add-pick-sheet" role="dialog" aria-modal="true" aria-label="Add a pick">
-      <header><div><span>ADD A PICK</span><strong>Choose it. Lock it. We verify it.</strong></div><button onClick={() => setOpen(false)} aria-label="Close"><X /></button></header>
+      <header><div><span>ADD A PICK</span><strong>Choose it. Lock it. Match your proof.</strong></div><button onClick={() => setOpen(false)} aria-label="Close"><X /></button></header>
       {mode === "choose" ? <div className="pick-methods">
         <Link href="/matchups" onClick={() => setOpen(false)}><i><Target /></i><span><strong>Lock a pick from the live board</strong><small>Preserves the line before you submit sportsbook proof</small></span><BadgeText>STEP 1</BadgeText><ArrowRight /></Link>
-        <button onClick={() => setMode("screenshot")}><i><Camera /></i><span><strong>Upload bet slip</strong><small>Import a screenshot for matching</small></span><BadgeText pending>PENDING</BadgeText><ArrowRight /></button>
-        <button onClick={() => setMode("ticket")}><i><ScanLine /></i><span><strong>Enter ticket ID</strong><small>Submit sportsbook evidence</small></span><BadgeText pending>PENDING</BadgeText><ArrowRight /></button>
+        <button onClick={() => setMode("screenshot")}><i><Camera /></i><span><strong>Scan bet slip</strong><small>Extract and match a sportsbook screenshot</small></span><BadgeText>PROOF SCAN</BadgeText><ArrowRight /></button>
+        <button onClick={() => setMode("ticket")}><i><ScanLine /></i><span><strong>Enter ticket ID</strong><small>Match a sportsbook order reference</small></span><BadgeText>TICKET MATCH</BadgeText><ArrowRight /></button>
         <p><ShieldCheck /> Every locked pick affects ratings. Optional sportsbook proof unlocks confirmed real-money stats.</p>
       </div> : <form className="ticket-import" onSubmit={submit}>
         <button type="button" onClick={() => setMode("choose")}>← Back</button>
