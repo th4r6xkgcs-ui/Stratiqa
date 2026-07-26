@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { AddPickLauncher } from "@/components/picks/add-pick-launcher";
+import { PickSlip } from "@/components/picks/pick-slip";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
@@ -147,6 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div><strong>STRATIQA v16.2</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
+      <PickSlip />
     </div>
   );
 }
