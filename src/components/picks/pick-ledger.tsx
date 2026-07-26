@@ -127,7 +127,7 @@ export function PickLedger() {
             const review = pick.result === "win" ? "Great pick" : pick.result === "loss" ? "Review the read" : pick.result === "push" ? "Even result" : "Waiting";
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
-              <div className="pick-result-copy"><small>{pick.sport} · {pick.category.replace("_", " ")}{pick.modelName ? ` · ${pick.modelName}` : ""}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
+              <div className="pick-result-copy"><small>{pick.pickOrigin === "model" ? `My model${pick.modelName ? ` · ${pick.modelName}` : ""}` : pick.pickOrigin === "stratiqa" ? "STRATIQA pick" : "My pick"} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
               <div className="pick-result-review"><strong>{review}</strong><small>{verified ? "Verified result" : pick.verificationStatus === "pending" ? "Auto-settlement pending" : "Practice journal"}</small></div>
               <div className="pick-result-rating">{verified ? <><b>{pick.result === "win" ? "+" : pick.result === "loss" ? "−" : ""}{pick.result === "push" ? "0" : "—"}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;
@@ -153,11 +153,11 @@ export function PickLedger() {
           </details>
           <Card className="rating-guide">
             <header><Trophy /> How ratings work</header>
-            <p>Verified wins move you up. Losses move you down. Difficult, well-priced picks are worth more.</p>
+            <p>Verified wins move you up. Losses move you down. Your stake size never changes rating points.</p>
             <div><span><i className="guide-win">W</i> Beat a tough line</span><b>More points</b></div>
             <div><span><i className="guide-loss">L</i> Miss an expected win</span><b>More risk</b></div>
             <div><span><i className="guide-push">P</i> Push or void</span><b>No change</b></div>
-            <details><summary>Advanced stats <ChevronDown /></summary><small>ROI, closing-line value, confidence calibration, category performance, and sample strength all contribute behind the scenes.</small></details>
+            <details><summary>Advanced stats <ChevronDown /></summary><small>Closing-line value, confidence calibration, category performance, and sample strength contribute behind the scenes. Units are bankroll analytics only.</small></details>
           </Card>
         </aside>
       </div>
