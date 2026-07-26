@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, BrainCircuit, Check, ChevronDown, Gauge, Plus, Pencil, ShieldCheck, Sparkles, Target, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, BrainCircuit, Check, ChevronDown, Gauge, Plus, Pencil, Sparkles, Target, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { factorWeights, modelIdentity } from "@/lib/models/profile";
 import { addToSlip } from "@/lib/picks/slip";
+import { ModelCommandCenter, type ManagedModel } from "@/components/models/model-command-center";
 
-type Performance = { verified: number; wins: number; losses: number; accuracy: number | null; rating: number };
-type Model = { id: string; name: string; sport: string; category: string; description: string; factors: string[]; strategy: string; risk_profile: string; weights: Record<string, number>; version: number; status: string; performance: Performance };
+type Model = ManagedModel;
 type Recommendation = { id: string; modelId: string; modelName: string; category: string; title: string; selection: string; eventName: string; book: string; price: number; confidence: number; expectedValue: number; reasons: string[]; live: boolean; kind: "prop" | "matchup"; propId?: string; slug?: string; outcomeName?: string };
 const sports = ["MLB", "NBA", "NFL", "NHL", "WNBA", "NCAAF", "NCAAB"];
 const categories = [["player_prop", "Player Props", "Project individual player outcomes"], ["moneyline", "Game Winners", "Find the team most likely to win"], ["spread", "Point Spreads", "Measure performance against the line"], ["total", "Game Totals", "Project combined scoring"], ["live", "Live Markets", "React to in-game information"]];
@@ -57,7 +57,7 @@ export function ModelWorkshop() {
     setModels((current) => [result.model, ...current]); setStatus(`${result.model.name} is ready for verified testing.`);
     void loadRecommendations();
     setStep(0); setName(""); setDescription("");
-    document.querySelector(".model-roster")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelector(".model-command-center")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   return <div className="model-workshop-v2">
     <Card className="guided-model-builder">
@@ -75,12 +75,6 @@ export function ModelWorkshop() {
 
     {models.length ? <section className="model-recommendations"><header><div><span className="landing-kicker">YOUR MODELS&apos; BOARD</span><h2>Markets your specialists understand</h2><p>These are matches, not guarantees. Open the reasoning, then decide what deserves your slip.</p></div><Badge tone={recommendations.some((item) => item.live) ? "success" : "warning"}>{recommendations.some((item) => item.live) ? "LIVE LINES" : "ANALYSIS MODE"}</Badge></header>{recommendations.length ? <div>{recommendations.slice(0, 6).map((item) => <Card className="model-recommendation-card" key={item.id}><header><span><BrainCircuit /> {item.modelName}</span><Badge tone={item.live ? "success" : "warning"}>{item.live ? "VERIFIABLE" : "WATCHLIST"}</Badge></header><small>{item.eventName}</small><h3>{item.title}</h3><div className="recommendation-score"><span><b>{item.confidence}%</b>Model fit</span><span><b>+{item.expectedValue.toFixed(1)}%</b>Market EV</span><span><b>{item.price > 0 ? "+" : ""}{item.price}</b>{item.book}</span></div><details><summary>Why it fits this model <ChevronDown /></summary><ul>{item.reasons.map((reason) => <li key={reason}><Check /> {reason}</li>)}</ul></details><Button onClick={() => addToSlip({ id: item.id, kind: item.kind, propId: item.propId, slug: item.slug, outcomeName: item.outcomeName, selection: item.selection, eventName: item.eventName, book: item.book, price: item.price, confidence: item.confidence, expectedValue: item.expectedValue, live: item.live, origin: "model", modelId: item.modelId, modelName: item.modelName })}><Plus /> Add as {item.modelName} pick</Button></Card>)}</div> : <Card className="model-empty"><Target /><h3>No compatible markets right now</h3><p>Your models are ready. Their board will populate when supported markets are available.</p></Card>}</section> : null}
 
-    <section className="model-roster">
-      <header><div><span className="landing-kicker">YOUR MODEL TEAM</span><h2>Build specialists. Prove them with real picks.</h2><p>Each model earns its own verified record and rating in its category.</p></div><Badge>{models.length} MODELS</Badge></header>
-      {models.length ? <div>{models.map((model) => {
-        const modelProfile = modelIdentity(model.category, model.factors, model.risk_profile);
-        return <Card key={model.id} className="model-performance-card"><header><div><BrainCircuit /><span><small>{model.sport} · {model.category.replace("_", " ")}</small><strong>{model.name}</strong></span></div><Badge tone={model.performance.verified >= 10 ? "success" : "warning"}>{model.performance.verified >= 10 ? "RATED" : "PROVISIONAL"}</Badge></header><div className="model-rating"><strong>{model.performance.rating}</strong><span>{modelProfile.archetype}<small>{model.performance.verified} verified picks</small></span></div><div className="model-record"><span><b>{model.performance.accuracy === null ? "—" : `${model.performance.accuracy}%`}</b>Accuracy</span><span><b>{model.performance.wins}-{model.performance.losses}</b>Record</span><span><b>v{model.version}</b>Version</span></div><div className="model-strengths">{model.factors.slice(0, 4).map((factor) => <span key={factor}>{label(factor)}</span>)}</div><footer><ShieldCheck /> Verified model picks count toward both your overall record and this model</footer></Card>;
-      })}</div> : <Card className="model-empty"><BrainCircuit /><h3>Your first specialist is three simple steps away</h3><p>Choose its category, teach it what matters, and let verified picks build its reputation.</p></Card>}
-    </section>{status ? <p className="ledger-status" role="status">{status}</p> : null}
+    {models.length ? <ModelCommandCenter models={models} onModels={setModels} onStatus={setStatus} /> : <Card className="model-empty"><BrainCircuit /><h3>Your first specialist is three simple steps away</h3><p>Choose its category, teach it what matters, and let verified picks build its reputation.</p></Card>}{status ? <p className="ledger-status" role="status">{status}</p> : null}
   </div>;
 }

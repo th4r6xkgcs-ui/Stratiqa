@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       eventName: `${matchup.away} at ${matchup.home}`, selection: quote.line, market: quote.marketKey,
       sportsbook: quote.book, americanOdds: quote.price, stakeUnits, confidence: matchup.confidence,
       providerEventId: matchup.providerEventId, providerSportKey: matchup.providerSportKey, marketKey: quote.marketKey,
-      outcomeName: quote.outcomeName, linePoint: quote.point ?? null, attributionType, modelId: ownedModel?.id ?? null, modelName,
+      outcomeName: quote.outcomeName, linePoint: quote.point ?? null, attributionType, modelId: ownedModel?.id ?? null, modelVersion: ownedModel?.version ?? null, modelName,
       pickOrigin: attributionType === "model" ? "model" : "personal",
     });
     return Response.json({ pick }, { status: 201 });
