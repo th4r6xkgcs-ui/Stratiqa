@@ -196,6 +196,7 @@ export function SectionExperience({ section }: { section: string }) {
   const [filter, setFilter] = useState(config?.filters[0] ?? "");
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState<string[]>([]);
+  const [notice, setNotice] = useState("");
 
   const rows = useMemo(() => {
     if (!config) return [];
@@ -215,7 +216,7 @@ export function SectionExperience({ section }: { section: string }) {
         <section className="legal-grid">
           {legal.sections.map(([title, body], index) => <Card key={title}><span>0{index + 1}</span><h2>{title}</h2><p>{body}</p></Card>)}
         </section>
-        {section === "support" ? <Card className="support-bar"><div><strong>Need direct help?</strong><span>Priority support is available for Elite members.</span></div><Button>Start support request</Button></Card> : null}
+        {section === "support" ? <Card className="support-bar"><div><strong>Need direct help?</strong><span>Priority support is available for Elite members.</span></div><a className="button button--primary" href="mailto:support@stratiqa.com">Start support request</a></Card> : null}
       </div>
     );
   }
@@ -229,7 +230,7 @@ export function SectionExperience({ section }: { section: string }) {
           <h1>{config.title}</h1>
           <p>{config.description}</p>
         </div>
-        <Button><Sparkles size={15} /> Generate insight</Button>
+        <Button onClick={() => setNotice(config.insight.body)}><Sparkles size={15} /> Generate insight</Button>
       </header>
 
       <section className="product-metrics">
@@ -241,7 +242,7 @@ export function SectionExperience({ section }: { section: string }) {
           {config.filters.map((item) => <button role="tab" aria-selected={filter === item} className={filter === item ? "active" : ""} onClick={() => setFilter(item)} key={item}>{item}</button>)}
         </div>
         <label><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${section}...`} aria-label={`Search ${section}`} /></label>
-        <button className="icon-control" aria-label="Advanced filters"><SlidersHorizontal size={16} /></button>
+        <button className="icon-control" aria-label="Reset filters" onClick={() => { setFilter(config.filters[0]); setQuery(""); setNotice("Filters reset."); }}><SlidersHorizontal size={16} /></button>
       </section>
 
       <div className="product-layout">
@@ -265,7 +266,7 @@ export function SectionExperience({ section }: { section: string }) {
         <aside className="product-rail">
           <Card className="insight-card">
             <header><span><Sparkles size={16} /> Model insight</span><Badge tone="accent">LIVE</Badge></header>
-            <div><h2>{config.insight.title}</h2><p>{config.insight.body}</p><button>{config.insight.action} <ChevronRight size={14} /></button></div>
+            <div><h2>{config.insight.title}</h2><p>{config.insight.body}</p><button onClick={() => setNotice(`${config.insight.title}: ${config.insight.body}`)}>{config.insight.action} <ChevronRight size={14} /></button></div>
           </Card>
           <Card className="health-card">
             <header><span><Activity size={16} /> System health</span></header>
@@ -275,6 +276,7 @@ export function SectionExperience({ section }: { section: string }) {
           </Card>
         </aside>
       </div>
+      {notice ? <p className="ledger-status" role="status">{notice}</p> : null}
     </div>
   );
 }

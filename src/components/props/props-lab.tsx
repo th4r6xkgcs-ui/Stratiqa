@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bookmark, Filter, Plus, Search } from "lucide-react";
-import { Badge, Button, Card } from "@/components/ui/primitives";
+import { Bookmark, Plus, Search } from "lucide-react";
+import { Badge, Card } from "@/components/ui/primitives";
 import type { PropData } from "@/services/types";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { addToSlip } from "@/lib/picks/slip";
@@ -24,7 +24,6 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
     <section className="props-toolbar">
       <div className="filter-tabs">{filters.map((item) => <button className={filter === item ? "active" : ""} key={item} onClick={() => setFilter(item)}>{item}</button>)}</div>
       <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search players or markets" /></label>
-      <Button variant="secondary"><Filter size={15} /> Filters</Button>
     </section>
     {visible.length ? <section className="props-grid">{visible.map((prop) => <Card className="prop-card glass-card" key={prop.id}>
       <header><div><Badge tone={prop.tags.includes("AI Pick") ? "accent" : "success"}>{prop.tags[0]}</Badge><small>{prop.matchup}</small></div><button className={favorites.includes(prop.id) ? "saved" : ""} aria-label={`Favorite ${prop.player}`} onClick={() => toggleFavorite(prop.id)}><Bookmark size={16} fill={favorites.includes(prop.id) ? "currentColor" : "none"} /></button></header>

@@ -20,32 +20,32 @@ import {
   Target,
   Trophy,
   UserRound,
-  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { AddPickLauncher } from "@/components/picks/add-pick-launcher";
 import { PickSlip } from "@/components/picks/pick-slip";
 
 const navigation = [
-  { label: "Dashboard", href: "/dashboard", icon: Gauge },
-  { label: "AI Coach", href: "/coach", icon: Sparkles, badge: "V15" },
-  { label: "Matchups", href: "/matchups", icon: Target },
+  { label: "Home", href: "/dashboard", icon: Gauge },
+  { label: "Game Markets", href: "/matchups", icon: Target },
+  { label: "Prop Market", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
+  { label: "My Picks", href: "/picks", icon: ClipboardCheck, badge: "PLAY" },
+];
+
+const intelligence = [
+  { label: "AI Coach", href: "/coach", icon: Sparkles, badge: "AI" },
+  { label: "Model Lab", href: "/lab", icon: FlaskConical },
   { label: "Teams", href: "/teams", icon: Shield },
   { label: "Players", href: "/players", icon: UserRound },
-  { label: "Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
-  { label: "My Picks", href: "/picks", icon: ClipboardCheck, badge: "PLAY" },
+  { label: "Alerts", href: "/alerts", icon: Bell, badge: "3" },
 ];
 
 const community = [
   { label: "Community", href: "/community", icon: Sparkles, badge: "NEW" },
-  { label: "Friends", href: "/friends", icon: Users },
   { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
-  { label: "Groups", href: "/groups", icon: Users },
 ];
 
 const tools = [
-  { label: "Alerts", href: "/alerts", icon: Bell, badge: "3" },
-  { label: "Stratiqa Lab", href: "/lab", icon: FlaskConical },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -113,8 +113,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav>
           <NavGroup items={navigation} onNavigate={() => setOpen(false)} />
-          <NavGroup label="ANALYST HUB" items={community} onNavigate={() => setOpen(false)} />
-          <NavGroup label="TOOLS" items={tools} onNavigate={() => setOpen(false)} />
+          <NavGroup label="INTELLIGENCE" items={intelligence} onNavigate={() => setOpen(false)} />
+          <NavGroup label="COMMUNITY" items={community} onNavigate={() => setOpen(false)} />
+          <NavGroup label="ACCOUNT" items={tools} onNavigate={() => setOpen(false)} />
         </nav>
 
         <div className="membership">

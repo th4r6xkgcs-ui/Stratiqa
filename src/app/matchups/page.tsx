@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Clock3, SlidersHorizontal, Sparkles, Target, TrendingUp } from "lucide-react";
+import { ArrowRight, Clock3, Sparkles, Target, TrendingUp } from "lucide-react";
 import { ConfidenceRing } from "@/components/ui/confidence-ring";
-import { Badge, Button, Card, Metric } from "@/components/ui/primitives";
+import { Badge, Card, Metric } from "@/components/ui/primitives";
 
 const games = [
   { team: "Seattle Mariners", abbr: "SEA", record: "47-38", opponent: "San Francisco Giants", opp: "SF", opponentRecord: "45-40", confidence: 96, probability: 63, time: "7:10 PM", bet: "Mariners ML", odds: "-118", edge: "+13.2%", value: "+18%", label: "Best play" },
@@ -21,10 +21,7 @@ export default function MatchupsPage() {
           <h1>Tonight&apos;s slate, ranked by edge.</h1>
           <p>Compare model confidence, market value, and the recommended side at a glance.</p>
         </div>
-        <div className="header-actions">
-          <Button variant="secondary"><CalendarDays size={16} /> Today</Button>
-          <Button variant="secondary"><SlidersHorizontal size={16} /> Filters</Button>
-        </div>
+        <Badge tone="success">TODAY · 6 GAMES</Badge>
       </header>
 
       <section className="matchup-summary">
