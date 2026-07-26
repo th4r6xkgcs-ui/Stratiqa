@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/primitives";
 import { PropsLab } from "@/components/props/props-lab";
 import { getPropsBoard } from "@/services";
 
+export const dynamic = "force-dynamic";
+
 export default async function PropsPage() {
   const result = await getPropsBoard();
   return (

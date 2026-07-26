@@ -6,11 +6,9 @@ import { Badge, Card } from "@/components/ui/primitives";
 import { ReasoningCard } from "@/components/intelligence/reasoning-card";
 import { StatMeter } from "@/components/intelligence/stat-meter";
 import { TrackPickButton } from "@/components/picks/track-pick-button";
-import { getMatchupIntelligence, getSupportedMatchupSlugs } from "@/services";
+import { getMatchupIntelligence } from "@/services";
 
-export function generateStaticParams() {
-  return getSupportedMatchupSlugs().map((slug) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function MatchupDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
