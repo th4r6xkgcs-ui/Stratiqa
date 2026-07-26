@@ -7,6 +7,14 @@ export async function GET() {
   return Response.json({
     status: degraded ? "degraded" : "healthy",
     ...health,
+    policy: {
+      liveLabels: ["live", "delayed", "unavailable"],
+      mockLabel: "simulation",
+      oddsCacheSeconds: 90,
+      propsCacheSeconds: 120,
+      staleFallbackMinutes: 15,
+      paidProviderRequired: false,
+    },
     settlement: { playerStatLeagues: configuredPlayerStatLeagues(), correctionWindowHours: 72 },
   }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -8,7 +8,7 @@ export async function GET() {
   const ready = environment.valid && unavailable.length === 0;
   return Response.json({
     status: ready ? "ready" : "not_ready",
-    version: "15.5",
+    version: "16.3",
     providerMode: health.environment.mode,
     unavailableProviders: unavailable.map((provider) => provider.name),
     environmentWarnings: environment.warnings,

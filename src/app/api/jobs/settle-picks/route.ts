@@ -5,6 +5,8 @@ import { configuredPlayerStatLeagues, getPlayerStatsProvider } from "@/services/
 import { LiveResultsProvider } from "@/services/results-provider";
 
 async function settlePicks(request: Request) {
+  const runId = crypto.randomUUID();
+  const startedAt = new Date();
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
@@ -25,15 +27,26 @@ async function settlePicks(request: Request) {
   const provider = new LiveResultsProvider(apiKey);
   let settled = 0;
   let settledProps = 0;
+  const failures: Array<{ scope: string; reason: string }> = [];
+  let deferredGames = 0;
+  let deferredProps = 0;
 
   for (const [sportKey, picks] of bySport) {
-    const scores = await provider.getCompleted(sportKey, [...new Set(picks.map((pick) => pick.providerEventId!))]);
-    const scoreById = new Map(scores.map((score) => [score.eventId, score]));
-    for (const pick of picks) {
-      const result = settleGameMarket(pick, scoreById.get(pick.providerEventId!));
-      if (result === "pending") continue;
-      const profit = profitForResult(pick.americanOdds, pick.stakeUnits, result);
-      if (await picksRepository.settleProvider(pick.id, result, profit)) settled += 1;
+    try {
+      const scores = await provider.getCompleted(sportKey, [...new Set(picks.map((pick) => pick.providerEventId!))]);
+      const scoreById = new Map(scores.map((score) => [score.eventId, score]));
+      for (const pick of picks) {
+        const result = settleGameMarket(pick, scoreById.get(pick.providerEventId!));
+        if (result === "pending") {
+          deferredGames += 1;
+          continue;
+        }
+        const profit = profitForResult(pick.americanOdds, pick.stakeUnits, result);
+        if (await picksRepository.settleProvider(pick.id, result, profit)) settled += 1;
+      }
+    } catch (error) {
+      deferredGames += picks.length;
+      failures.push({ scope: `game-results:${sportKey}`, reason: error instanceof Error ? error.message : "Provider unavailable" });
     }
   }
 
@@ -50,42 +63,65 @@ async function settlePicks(request: Request) {
       }
       for (const [sportKey, sportPicks] of bySport) {
         const statsProvider = getPlayerStatsProvider(sportKey);
-        if (!statsProvider) continue;
-        const stats = await statsProvider.getFinal(sportPicks.flatMap((pick) => pick.providerEventId ? [pick.providerEventId] : []));
-        for (const pick of sportPicks) {
-          const stat = stats.find((item) =>
-            item.eventId === pick.providerEventId &&
-            item.marketKey.toLowerCase() === pick.marketKey?.toLowerCase() &&
-            item.participant.trim().toLowerCase() === pick.participantName?.trim().toLowerCase(),
-          );
-          if (!stat) continue;
-          const settlement = settlePlayerProp(pick, stat);
-          if (settlement.result === "pending") continue;
-          const profit = profitForResult(pick.americanOdds, pick.stakeUnits, settlement.result);
-          const metadata = {
-            provider: `player-stats:${sportKey}`,
-            reason: settlement.reason,
-            statValue: settlement.actual,
-            revision: stat.revision,
-          };
-          if (pick.verificationStatus === "pending") {
-            if (await picksRepository.settleProvider(pick.id, settlement.result, profit, metadata)) settledProps += 1;
-          } else if (stat.revision && stat.revision !== pick.settlementRevision) {
-            if (await picksRepository.reviseProvider(pick.id, settlement.result, profit, { ...metadata, revision: stat.revision })) settledProps += 1;
+        if (!statsProvider) {
+          deferredProps += sportPicks.length;
+          failures.push({ scope: `player-stats:${sportKey}`, reason: "No free official-stat adapter is configured." });
+          continue;
+        }
+        try {
+          const stats = await statsProvider.getFinal(sportPicks.flatMap((pick) => pick.providerEventId ? [pick.providerEventId] : []));
+          for (const pick of sportPicks) {
+            const stat = stats.find((item) =>
+              item.eventId === pick.providerEventId &&
+              item.marketKey.toLowerCase() === pick.marketKey?.toLowerCase() &&
+              item.participant.trim().toLowerCase() === pick.participantName?.trim().toLowerCase(),
+            );
+            if (!stat) {
+              deferredProps += 1;
+              continue;
+            }
+            const settlement = settlePlayerProp(pick, stat);
+            if (settlement.result === "pending") {
+              deferredProps += 1;
+              continue;
+            }
+            const profit = profitForResult(pick.americanOdds, pick.stakeUnits, settlement.result);
+            const metadata = {
+              provider: `player-stats:${sportKey}`,
+              reason: settlement.reason,
+              statValue: settlement.actual,
+              revision: stat.revision,
+            };
+            if (pick.verificationStatus === "pending") {
+              if (await picksRepository.settleProvider(pick.id, settlement.result, profit, metadata)) settledProps += 1;
+            } else if (stat.revision && stat.revision !== pick.settlementRevision) {
+              if (await picksRepository.reviseProvider(pick.id, settlement.result, profit, { ...metadata, revision: stat.revision })) settledProps += 1;
+            }
           }
+        } catch (error) {
+          deferredProps += sportPicks.length;
+          failures.push({ scope: `player-stats:${sportKey}`, reason: error instanceof Error ? error.message : "Provider unavailable" });
         }
       }
     } catch (error) {
       console.error("Player prop settlement provider failed", error);
       propProviderError = "temporarily-unavailable";
+      failures.push({ scope: "player-stats", reason: error instanceof Error ? error.message : "Provider unavailable" });
     }
   }
 
   return Response.json({
+    runId,
+    status: failures.length ? (settled + settledProps ? "partial" : "deferred") : "complete",
+    startedAt: startedAt.toISOString(),
+    finishedAt: new Date().toISOString(),
     checkedGames: gameMarkets.length,
     checkedProps: props.length,
     settledGames: settled,
     settledProps,
+    deferredGames,
+    deferredProps,
+    failures,
     propProvider: propProviderError ?? (configuredPlayerStatLeagues().length ? "configured" : "waiting-for-provider"),
     configuredLeagues: configuredPlayerStatLeagues(),
   });

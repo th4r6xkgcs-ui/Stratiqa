@@ -22,12 +22,12 @@ const propsSource = environment.mode === "live"
   : new MockPropsProvider();
 
 export const providers = {
-  odds: new ResilientProvider("odds", oddsSource),
+  odds: new ResilientProvider("odds", oddsSource, { ttlMs: 90_000, staleMs: 900_000, retries: 1, maxRequestsPerWindow: 10, windowMs: 60_000, failureThreshold: 3, cooldownMs: 120_000 }),
   weather: new ResilientProvider("weather", new MockWeatherProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
   injuries: new ResilientProvider("injuries", new MockInjuriesProvider()),
   standings: new ResilientProvider("standings", new MockStandingsProvider(), { ttlMs: 300_000, staleMs: 1_800_000, retries: 2 }),
   stats: new ResilientProvider("stats", new MockStatsProvider(), { ttlMs: 120_000, staleMs: 900_000, retries: 2 }),
-  props: new ResilientProvider("props", propsSource, { ttlMs: 60_000, staleMs: 600_000, retries: 0 }),
+  props: new ResilientProvider("props", propsSource, { ttlMs: 120_000, staleMs: 900_000, retries: 0, maxRequestsPerWindow: 5, windowMs: 60_000, failureThreshold: 2, cooldownMs: 180_000 }),
   lineMovement: new ResilientProvider("lineMovement", new MockLineMovementProvider()),
 };
 
