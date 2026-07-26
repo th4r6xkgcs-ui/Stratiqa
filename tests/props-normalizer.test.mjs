@@ -20,3 +20,24 @@ test("normalizes provider player props with immutable identity and sportsbook pr
     { book: "DraftKings", outcomeName: "Under", price: -135 },
   ]);
 });
+
+test("normalizes NBA, NFL, NHL, and WNBA prop markets", () => {
+  const cases = [
+    ["basketball_nba", "player_points", "Points"],
+    ["americanfootball_nfl", "player_pass_yds", "Passing Yards"],
+    ["icehockey_nhl", "player_shots_on_goal", "Shots on Goal"],
+    ["basketball_wnba", "player_rebounds", "Rebounds"],
+  ];
+  for (const [sportKey, marketKey, marketName] of cases) {
+    const [prop] = normalizePlayerProps([{
+      id: `${sportKey}-event`, sport_key: sportKey, commence_time: "2030-01-01T00:00:00Z",
+      away_team: "Away", home_team: "Home",
+      bookmakers: [{ title: "FanDuel", markets: [{ key: marketKey, outcomes: [
+        { name: "Over", description: "Test Player", price: -110, point: 10.5 },
+        { name: "Under", description: "Test Player", price: -110, point: 10.5 },
+      ] }] }],
+    }]);
+    assert.equal(prop.providerSportKey, sportKey);
+    assert.equal(prop.market, marketName);
+  }
+});

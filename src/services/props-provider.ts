@@ -11,6 +11,19 @@ const props: PropData[] = [
   { id: "webb-outs", player: "Logan Webb", team: "SF", matchup: "SEA vs SF", market: "Pitching Outs", line: "Under 17.5", price: -105, projection: 16.2, hitRate: 62, expectedValue: 9.6, confidence: 77, trend: [18, 15, 17, 16, 19, 14, 16], tags: ["AI Pick", "Correlated"] },
 ];
 
+export const supportedPropSports = {
+  baseball_mlb: "batter_total_bases,pitcher_strikeouts,batter_hits,batter_home_runs,batter_rbis,batter_runs_scored,pitcher_outs",
+  basketball_nba: "player_points,player_rebounds,player_assists,player_threes,player_points_rebounds_assists",
+  americanfootball_nfl: "player_pass_yds,player_pass_tds,player_rush_yds,player_receptions,player_reception_yds",
+  icehockey_nhl: "player_points,player_assists,player_shots_on_goal,player_goals,player_total_saves",
+  basketball_wnba: "player_points,player_rebounds,player_assists,player_threes,player_points_rebounds_assists",
+} as const;
+
+const sportEnvSuffix: Record<keyof typeof supportedPropSports, string> = {
+  baseball_mlb: "MLB", basketball_nba: "NBA", americanfootball_nfl: "NFL",
+  icehockey_nhl: "NHL", basketball_wnba: "WNBA",
+};
+
 export class MockPropsProvider implements DataProvider<PropData[]> {
   async getData() {
     return mockResult(props, "STRATIQA mock props");
@@ -19,14 +32,14 @@ export class MockPropsProvider implements DataProvider<PropData[]> {
 
 type ExternalEvent = { id: string; sport_key: string; commence_time: string; home_team: string; away_team: string };
 export class LivePropsProvider implements DataProvider<PropData[]> {
-  constructor(private readonly apiKey: string, private readonly sport = process.env.STRATIQA_ODDS_SPORT ?? "baseball_mlb") {}
+  constructor(private readonly apiKey: string, private readonly sport: keyof typeof supportedPropSports = "baseball_mlb") {}
   async getData(): Promise<ProviderResult<PropData[]>> {
     const eventsUrl = new URL(`https://api.the-odds-api.com/v4/sports/${this.sport}/events`);
     eventsUrl.searchParams.set("apiKey", this.apiKey);
     const eventsResponse = await fetch(eventsUrl, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
     if (!eventsResponse.ok) throw new Error(`Props events responded with ${eventsResponse.status}`);
     const maxEvents = Math.max(1, Math.min(8, Number(process.env.STRATIQA_PROPS_MAX_EVENTS ?? 1)));
-    const markets = process.env.STRATIQA_PROPS_MARKETS ?? "batter_total_bases,pitcher_strikeouts";
+    const markets = process.env[`STRATIQA_PROPS_MARKETS_${sportEnvSuffix[this.sport]}`] ?? supportedPropSports[this.sport];
     const events = (await eventsResponse.json() as ExternalEvent[]).filter((event) => new Date(event.commence_time).getTime() > Date.now()).slice(0, maxEvents);
     const boards = await Promise.all(events.map(async (event) => {
       const url = new URL(`https://api.the-odds-api.com/v4/sports/${this.sport}/events/${event.id}/odds`);
@@ -43,6 +56,21 @@ export class LivePropsProvider implements DataProvider<PropData[]> {
 }
 
 export class FallbackPropsProvider implements DataProvider<PropData[]> {
-  constructor(private readonly live: LivePropsProvider, private readonly mock = new MockPropsProvider()) {}
+  constructor(private readonly live: DataProvider<PropData[]>, private readonly mock = new MockPropsProvider()) {}
   async getData() { try { return await this.live.getData(); } catch (error) { console.warn("Live props unavailable; using mock fallback", error); return this.mock.getData(); } }
+}
+
+export class MultiSportPropsProvider implements DataProvider<PropData[]> {
+  private readonly sources: LivePropsProvider[];
+  constructor(apiKey: string, sports: string[]) {
+    const supported = sports.filter((sport) => sport in supportedPropSports) as Array<keyof typeof supportedPropSports>;
+    const activeSports: Array<keyof typeof supportedPropSports> = supported.length ? supported : ["baseball_mlb"];
+    this.sources = activeSports.map((sport) => new LivePropsProvider(apiKey, sport));
+  }
+  async getData(): Promise<ProviderResult<PropData[]>> {
+    const results = await Promise.allSettled(this.sources.map((source) => source.getData()));
+    const data = results.flatMap((result) => result.status === "fulfilled" ? result.value.data : []);
+    if (!data.length) throw new Error("No live player props are currently available across configured sports");
+    return { data, provider: "The Odds API multisport", mode: "live", updatedAt: new Date().toISOString() };
+  }
 }

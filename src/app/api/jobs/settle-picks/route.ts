@@ -1,7 +1,7 @@
 import { profitForResult } from "@/lib/picks/validation";
 import { settleGameMarket, settlePlayerProp } from "@/lib/picks/settlement.js";
 import { picksRepository } from "@/repositories/picks";
-import { ConfiguredPlayerStatsProvider } from "@/services/player-stats-provider";
+import { configuredPlayerStatLeagues, getPlayerStatsProvider } from "@/services/player-stats-provider";
 import { LiveResultsProvider } from "@/services/results-provider";
 
 async function settlePicks(request: Request) {
@@ -35,28 +35,34 @@ async function settlePicks(request: Request) {
   }
 
   const props = pending.filter((pick) => !["h2h", "spreads", "totals"].includes(pick.marketKey ?? ""));
-  const statsUrl = process.env.STRATIQA_PLAYER_STATS_URL;
-  const statsKey = process.env.STRATIQA_PLAYER_STATS_API_KEY;
   let propProviderError: string | null = null;
-  if (statsUrl && statsKey && props.length) {
+  if (props.length) {
     try {
-      const stats = await new ConfiguredPlayerStatsProvider(statsUrl, statsKey).getFinal(props.flatMap((pick) => pick.providerEventId ? [pick.providerEventId] : []));
+      const bySport = new Map<string, typeof props>();
       for (const pick of props) {
-        const stat = stats.find((item) =>
-          item.eventId === pick.providerEventId &&
-          item.marketKey.toLowerCase() === pick.marketKey?.toLowerCase() &&
-          item.participant.trim().toLowerCase() === pick.participantName?.trim().toLowerCase(),
-        );
-        if (!stat) continue;
-        const settlement = settlePlayerProp(pick, stat);
-        if (settlement.result === "pending") continue;
-        const profit = profitForResult(pick.americanOdds, pick.stakeUnits, settlement.result);
-        if (await picksRepository.settleProvider(pick.id, settlement.result, profit, {
-          provider: "player-stats",
-          reason: settlement.reason,
-          statValue: settlement.actual,
-          revision: stat.revision,
-        })) settledProps += 1;
+        if (pick.providerSportKey) bySport.set(pick.providerSportKey, [...(bySport.get(pick.providerSportKey) ?? []), pick]);
+      }
+      for (const [sportKey, sportPicks] of bySport) {
+        const statsProvider = getPlayerStatsProvider(sportKey);
+        if (!statsProvider) continue;
+        const stats = await statsProvider.getFinal(sportPicks.flatMap((pick) => pick.providerEventId ? [pick.providerEventId] : []));
+        for (const pick of sportPicks) {
+          const stat = stats.find((item) =>
+            item.eventId === pick.providerEventId &&
+            item.marketKey.toLowerCase() === pick.marketKey?.toLowerCase() &&
+            item.participant.trim().toLowerCase() === pick.participantName?.trim().toLowerCase(),
+          );
+          if (!stat) continue;
+          const settlement = settlePlayerProp(pick, stat);
+          if (settlement.result === "pending") continue;
+          const profit = profitForResult(pick.americanOdds, pick.stakeUnits, settlement.result);
+          if (await picksRepository.settleProvider(pick.id, settlement.result, profit, {
+            provider: `player-stats:${sportKey}`,
+            reason: settlement.reason,
+            statValue: settlement.actual,
+            revision: stat.revision,
+          })) settledProps += 1;
+        }
       }
     } catch (error) {
       console.error("Player prop settlement provider failed", error);
@@ -69,7 +75,8 @@ async function settlePicks(request: Request) {
     checkedProps: props.length,
     settledGames: settled,
     settledProps,
-    propProvider: propProviderError ?? (statsUrl && statsKey ? "configured" : "waiting-for-provider"),
+    propProvider: propProviderError ?? (configuredPlayerStatLeagues().length ? "configured" : "waiting-for-provider"),
+    configuredLeagues: configuredPlayerStatLeagues(),
   });
 }
 

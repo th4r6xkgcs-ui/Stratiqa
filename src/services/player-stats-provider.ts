@@ -33,3 +33,25 @@ export class ConfiguredPlayerStatsProvider {
     );
   }
 }
+
+const leagueBySportKey: Record<string, "MLB" | "NBA" | "NFL" | "NHL" | "WNBA"> = {
+  baseball_mlb: "MLB",
+  basketball_nba: "NBA",
+  americanfootball_nfl: "NFL",
+  icehockey_nhl: "NHL",
+  basketball_wnba: "WNBA",
+};
+
+export function getPlayerStatsProvider(sportKey: string) {
+  const league = leagueBySportKey[sportKey];
+  if (!league) return null;
+  const endpoint = process.env[`STRATIQA_PLAYER_STATS_${league}_URL`] ?? process.env.STRATIQA_PLAYER_STATS_URL;
+  const apiKey = process.env[`STRATIQA_PLAYER_STATS_${league}_API_KEY`] ?? process.env.STRATIQA_PLAYER_STATS_API_KEY;
+  return endpoint && apiKey ? new ConfiguredPlayerStatsProvider(endpoint, apiKey) : null;
+}
+
+export function configuredPlayerStatLeagues() {
+  return Object.entries(leagueBySportKey)
+    .filter(([sportKey]) => getPlayerStatsProvider(sportKey))
+    .map(([, league]) => league);
+}

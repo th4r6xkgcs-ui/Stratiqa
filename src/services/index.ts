@@ -2,7 +2,7 @@ import "server-only";
 import { MockInjuriesProvider } from "./injuries-provider";
 import { MockLineMovementProvider } from "./line-movement-provider";
 import { LiveOddsProvider, MockOddsProvider } from "./odds-provider";
-import { FallbackPropsProvider, LivePropsProvider, MockPropsProvider } from "./props-provider";
+import { FallbackPropsProvider, MultiSportPropsProvider, MockPropsProvider } from "./props-provider";
 import { MockStandingsProvider } from "./standings-provider";
 import { MockStatsProvider } from "./stats-provider";
 import { MockWeatherProvider } from "./weather-provider";
@@ -15,7 +15,10 @@ const oddsSource = environment.mode === "live"
   ? new LiveOddsProvider(process.env.STRATIQA_ODDS_API_KEY!)
   : new MockOddsProvider();
 const propsSource = environment.mode === "live"
-  ? new FallbackPropsProvider(new LivePropsProvider(process.env.STRATIQA_ODDS_API_KEY!))
+  ? new FallbackPropsProvider(new MultiSportPropsProvider(
+      process.env.STRATIQA_ODDS_API_KEY!,
+      (process.env.STRATIQA_PROPS_SPORTS ?? "baseball_mlb,basketball_nba,americanfootball_nfl,icehockey_nhl,basketball_wnba").split(",").map((sport) => sport.trim()),
+    ))
   : new MockPropsProvider();
 
 export const providers = {
