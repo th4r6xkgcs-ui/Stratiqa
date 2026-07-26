@@ -28,6 +28,10 @@ export type SettlementAudit = {
   id: number; pickId: string; previousResult: string | null; result: string; provider: string;
   providerStatValue: number | null; reason: string | null; revision: string | null; createdAt: string;
 };
+export type PickRatingImpact = {
+  pickId: string; category: string; previousRating: number; rating: number;
+  ratingChange: number; result: Exclude<PickResult, "pending">; recordedAt: string;
+};
 export type ProviderPick = Omit<NewPick, "notes"> & {
   providerEventId: string; providerSportKey: string; marketKey: string; outcomeName: string; linePoint: number | null;
   attributionType: "judgment" | "model"; modelId: string | null; modelVersion: number | null; modelName: string | null;
@@ -43,6 +47,7 @@ interface PicksRepository {
   listRatings(userId: string): Promise<CategoryRating[]>;
   listCards(userId: string): Promise<TrackedCard[]>;
   listSettlementAudit(userId: string): Promise<SettlementAudit[]>;
+  listRatingImpacts(userId: string): Promise<PickRatingImpact[]>;
   listRecentSettledProps(): Promise<TrackedPick[]>;
   create(userId: string, pick: NewPick): Promise<TrackedPick>;
   createProvider(userId: string, pick: ProviderPick): Promise<TrackedPick>;
@@ -60,6 +65,7 @@ class DevelopmentPicksRepository implements PicksRepository {
   async listRatings() { return []; }
   async listCards() { return []; }
   async listSettlementAudit() { return []; }
+  async listRatingImpacts() { return []; }
   async listRecentSettledProps() { return []; }
   async create(userId: string, pick: NewPick) {
     const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, participantName: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, certificationStatus: "tracked", eventCommenceAt: null, realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, settlementReason: null, providerStatValue: null, settlementProvider: null, settlementRevision: null, placedAt: new Date().toISOString(), gradedAt: null };
@@ -166,6 +172,14 @@ class SupabasePicksRepository implements PicksRepository {
       id: row.id, pickId: row.pick_id, previousResult: row.previous_result, result: row.result, provider: row.provider,
       providerStatValue: row.provider_stat_value == null ? null : Number(row.provider_stat_value),
       reason: row.reason, revision: row.revision, createdAt: row.created_at,
+    }));
+  }
+  async listRatingImpacts(userId: string) {
+    const response = await fetch(`${this.url}/rest/v1/pick_rating_impacts?user_id=eq.${encodeURIComponent(userId)}&select=*&order=recorded_at.desc&limit=100`, { headers: this.headers(), cache: "no-store", signal: AbortSignal.timeout(8_000) });
+    if (!response.ok) return [];
+    return (await response.json() as Array<{ pick_id: string; category: string; previous_rating: number; rating: number; rating_change: number; result: Exclude<PickResult, "pending">; recorded_at: string }>).map((row) => ({
+      pickId: row.pick_id, category: row.category, previousRating: Number(row.previous_rating),
+      rating: Number(row.rating), ratingChange: Number(row.rating_change), result: row.result, recordedAt: row.recorded_at,
     }));
   }
   async create(userId: string, pick: NewPick) {

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUp, Bell, BrainCircuit, Check, Clock3, Crown, LockKeyhole, Search, ShieldCheck, Sparkles, Target, Trophy, X } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
-import type { CategoryRating, TrackedCard, TrackedPick } from "@/repositories/picks";
+import { buildSettlementFeed } from "@/lib/notifications/settlement-feed.js";
+import type { CategoryRating, PickRatingImpact, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
 import type { ManagedModel } from "@/components/models/model-command-center";
 
 type Profile = { public_alias?: string; public_slug?: string; leaderboard_opt_in?: boolean };
@@ -12,22 +13,23 @@ type Feed = { id: string; tone: "win" | "loss" | "info"; title: string; detail: 
 const labels: Record<string, string> = { player_prop: "Player Props", moneyline: "Moneylines", spread: "Spreads", total: "Totals", parlay: "Parlays", live: "Live Markets" };
 const ranks = [{ name: "Rookie", floor: 0 }, { name: "Scout", floor: 1200 }, { name: "Strategist", floor: 1450 }, { name: "Sharp", floor: 1650 }, { name: "Expert", floor: 1850 }, { name: "Elite", floor: 2000 }, { name: "Grandmaster", floor: 2250 }];
 
-function resultLabel(result: TrackedPick["result"]) {
-  if (result === "win") return "won";
-  if (result === "loss") return "lost";
-  if (result === "push") return "pushed";
-  return "is waiting for an official result";
-}
-
 export function HomeCommandCenter() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
   const [ratings, setRatings] = useState<CategoryRating[]>([]);
   const [cards, setCards] = useState<TrackedCard[]>([]);
+  const [settlementAudit, setSettlementAudit] = useState<SettlementAudit[]>([]);
+  const [ratingImpacts, setRatingImpacts] = useState<PickRatingImpact[]>([]);
   const [models, setModels] = useState<ManagedModel[]>([]);
   const [profile, setProfile] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState<string[]>([]);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try { setDismissed(JSON.parse(localStorage.getItem("stratiqa-dismissed-updates") ?? "[]")); } catch { setDismissed([]); }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
   useEffect(() => {
     Promise.all([
       fetch("/api/picks", { cache: "no-store" }).then((response) => response.ok ? response.json() : { picks: [], ratings: [], cards: [] }),
@@ -37,10 +39,19 @@ export function HomeCommandCenter() {
       setPicks(pickData.picks ?? []);
       setRatings(pickData.ratings ?? []);
       setCards(pickData.cards ?? []);
+      setSettlementAudit(pickData.settlementAudit ?? []);
+      setRatingImpacts(pickData.ratingImpacts ?? []);
       setModels(modelData.models ?? []);
       setProfile(profileData.profile ?? {});
     }).finally(() => setLoading(false));
   }, []);
+  function dismissFeedItem(id: string) {
+    setDismissed((current) => {
+      const next = [id, ...current.filter((item) => item !== id)].slice(0, 100);
+      localStorage.setItem("stratiqa-dismissed-updates", JSON.stringify(next));
+      return next;
+    });
+  }
 
   const summary = useMemo(() => {
     const samples = ratings.reduce((sum, item) => sum + item.gradedPicks, 0);
@@ -60,18 +71,12 @@ export function HomeCommandCenter() {
   }, [models, picks, ratings]);
 
   const feed = useMemo<Feed[]>(() => {
-    const items: Feed[] = summary.recent.slice(0, 4).map((pick) => ({
-      id: `pick-${pick.id}`,
-      tone: pick.result === "win" ? "win" : pick.result === "loss" ? "loss" : "info",
-      title: pick.result === "pending" ? "Pick locked successfully" : `Pick ${resultLabel(pick.result)}`,
-      detail: `${pick.selection} · ${pick.result === "pending" ? "Automatic settlement pending" : pick.settlementReason ?? "Official result confirmed"}`,
-      href: "/picks",
-    }));
+    const items = buildSettlementFeed({ picks, audits: settlementAudit, impacts: ratingImpacts }).slice(0, 6) as Feed[];
     const rankedModel = models.find((model) => model.performance.verified >= 10);
     if (rankedModel) items.push({ id: `model-${rankedModel.id}`, tone: "win", title: `${rankedModel.name} is ranked`, detail: `${rankedModel.performance.rating} model rating across ${rankedModel.performance.verified} settled picks`, href: "/lab" });
     if (profile.leaderboard_opt_in && summary.strongest?.gradedPicks >= 25) items.push({ id: "leaderboard-ready", tone: "win", title: "Your public ranking is live", detail: `${labels[summary.strongest.category] ?? summary.strongest.category} is now eligible for competition`, href: "/leaderboard" });
     return items.filter((item) => !dismissed.includes(item.id)).slice(0, 5);
-  }, [dismissed, models, profile.leaderboard_opt_in, summary.recent, summary.strongest]);
+  }, [dismissed, models, picks, profile.leaderboard_opt_in, ratingImpacts, settlementAudit, summary.strongest]);
 
   if (loading) return <div className="dashboard-page home-command"><div className="home-loading">{[1, 2, 3, 4, 5].map((item) => <i key={item} />)}</div></div>;
 
@@ -120,7 +125,7 @@ export function HomeCommandCenter() {
 
       <Card className="home-notifications" id="updates">
         <header><span><Bell /> Updates</span><Badge tone={feed.length ? "accent" : "neutral"}>{feed.length}</Badge></header>
-        {feed.length ? feed.map((item) => <article className={item.tone} key={item.id}><i>{item.tone === "win" ? <ArrowUp /> : item.tone === "loss" ? <ArrowDown /> : <ShieldCheck />}</i><Link href={item.href}><strong>{item.title}</strong><small>{item.detail}</small></Link><button onClick={() => setDismissed((current) => [...current, item.id])} aria-label={`Dismiss ${item.title}`}><X /></button></article>) : <div className="home-empty compact"><Check /><strong>You&apos;re all caught up</strong><p>Settlements and milestones will appear here.</p></div>}
+        {feed.length ? feed.map((item) => <article className={item.tone} key={item.id}><i>{item.tone === "win" ? <ArrowUp /> : item.tone === "loss" ? <ArrowDown /> : <ShieldCheck />}</i><Link href={item.href}><strong>{item.title}</strong><small>{item.detail}</small></Link><button onClick={() => dismissFeedItem(item.id)} aria-label={`Dismiss ${item.title}`}><X /></button></article>) : <div className="home-empty compact"><Check /><strong>You&apos;re all caught up</strong><p>Settlements and milestones will appear here.</p></div>}
       </Card>
     </div>
 

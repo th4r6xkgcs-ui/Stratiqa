@@ -19,6 +19,12 @@ export type ProviderHealth = {
   lastSuccessAt: string | null;
   consecutiveFailures: number;
   stale: boolean;
+  cacheHits: number;
+  upstreamRequests: number;
+  quotaRemaining: number | null;
+  circuitOpenUntil: string | null;
+  dataAgeSeconds: number | null;
+  lastError: string | null;
 };
 
 export type SportsbookQuote = { book: string; price: number; line: string; marketKey?: string; outcomeName?: string; point?: number | null };
