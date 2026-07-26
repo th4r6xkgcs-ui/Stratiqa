@@ -5,10 +5,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Bell,
-  ClipboardCheck,
   ChartNoAxesCombined,
   ChevronRight,
-  Crown,
   Flame,
   FlaskConical,
   Gauge,
@@ -27,9 +25,9 @@ import { PickSlip } from "@/components/picks/pick-slip";
 
 const navigation = [
   { label: "Home", href: "/dashboard", icon: Gauge },
-  { label: "Game Markets", href: "/matchups", icon: Target },
-  { label: "Prop Market", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
-  { label: "My Picks", href: "/picks", icon: ClipboardCheck, badge: "PLAY" },
+  { label: "Find Picks", href: "/matchups", icon: Target },
+  { label: "Player Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
+  { label: "My Performance", href: "/picks", icon: Trophy, badge: "RATING" },
 ];
 
 const intelligence = [
@@ -98,17 +96,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <small>Smarter models. Better decisions.</small>
         </Link>
 
-        <Link href="/analysts/heriberto" className="sidebar-profile">
+        <Link href="/picks" className="sidebar-profile" onClick={() => setOpen(false)}>
           <header>
-            <div className="sidebar-avatar"><span>H</span><i /></div>
-            <div><strong>Heriberto <b>✓</b></strong><span>Founding Member</span><em><Crown size={11} /> Elite Analyst</em></div>
+            <div className="sidebar-performance-icon"><Trophy /></div>
+            <div><strong>My Performance</strong><span>Rating & records</span><em>UPDATED AUTOMATICALLY</em></div>
           </header>
-          <div className="sidebar-rating">
-            <div><strong>2724</strong><span>RATING</span></div>
-            <div><strong>▲ 42</strong><span>THIS WEEK</span></div>
-          </div>
-          <div className="sidebar-rank"><strong>Top 2%</strong><span>of all analysts</span><i /></div>
-          <div className="profile-link">View Profile <ChevronRight size={15} /></div>
+          <p className="sidebar-performance-copy">See your rating, strongest categories, parlays, and confirmed results.</p>
+          <div className="profile-link">Open performance <ChevronRight size={15} /></div>
         </Link>
 
         <nav>
@@ -149,6 +143,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div><strong>STRATIQA v16.2</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
+      <nav className="mobile-bottom-nav" aria-label="Primary mobile navigation">
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+            <Icon />
+            <span>{item.label === "My Performance" ? "Performance" : item.label}</span>
+          </Link>;
+        })}
+      </nav>
       <PickSlip />
     </div>
   );

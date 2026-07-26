@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
+import { ArrowRight, BarChart3, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import type { CategoryRating, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
 
@@ -20,6 +20,14 @@ const ranks = [
   { name: "Elite", floor: 2000, color: "#ff6e76" },
   { name: "Grandmaster", floor: 2250, color: "#ffd75f" },
 ];
+const categoryNames: Record<string, string> = {
+  player_prop: "Player Props",
+  moneyline: "Moneylines",
+  spread: "Spreads",
+  total: "Totals",
+  parlay: "Parlays",
+  live: "Live Markets",
+};
 
 function ratingFromPicks(picks: TrackedPick[]) {
   return Math.round(picks
@@ -105,7 +113,19 @@ export function PickLedger() {
 
   return (
     <div className="pick-journey">
-      <section className="pick-rating-grid">
+      <nav className="performance-jump" aria-label="Performance sections">
+        <a href="#overview">Overview</a>
+        <a href="#specialties">Specialties</a>
+        <a href="#parlays">Parlays</a>
+        <a href="#history">Pick history</a>
+      </nav>
+
+      <section className="performance-explainer" aria-label="How performance is measured">
+        <div><Trophy /><span><strong>STRATIQA performance</strong><small>Every locked live pick builds your rating and category record after automatic settlement.</small></span></div>
+        <div><ShieldAlert /><span><strong>Confirmed money stats</strong><small>Sportsbook proof adds real profit and ROI. Without proof, those two fields simply stay N/A.</small></span></div>
+      </section>
+
+      <section className="pick-rating-grid" id="overview">
         <Card className="pick-rating-card">
           <div className="rating-glow" style={{ background: summary.rank.color }} />
           <header><span><Trophy /> PICK RATING</span><Badge tone={summary.settled >= 25 ? "success" : "warning"}>{summary.settled >= 25 ? "RANKED" : "PROVISIONAL"}</Badge></header>
@@ -127,13 +147,27 @@ export function PickLedger() {
       </section>
 
       <section className="pick-stats-strip">
-        <div><strong>{summary.settled}</strong><span>Rated picks</span></div>
-        <div><strong>{summary.decisions ? `${(summary.wins / summary.decisions * 100).toFixed(0)}%` : "—"}</strong><span>Accuracy</span></div>
-        <div><strong className={summary.hasRealMoney && summary.realProfit >= 0 ? "positive" : summary.hasRealMoney ? "negative" : ""}>{summary.hasRealMoney ? `${summary.realProfit >= 0 ? "+" : ""}$${summary.realProfit.toFixed(2)}` : "N/A"}</strong><span>Real profit</span></div>
-        <div><strong>{summary.hasRealMoney ? `${summary.realRoi.toFixed(1)}%` : "N/A"}</strong><span>Real ROI</span></div>
+        <div><small>STRATIQA</small><strong>{summary.settled}</strong><span>Rated picks</span></div>
+        <div><small>STRATIQA</small><strong>{summary.decisions ? `${(summary.wins / summary.decisions * 100).toFixed(0)}%` : "—"}</strong><span>Accuracy</span></div>
+        <div><small>CONFIRMED</small><strong className={summary.hasRealMoney && summary.realProfit >= 0 ? "positive" : summary.hasRealMoney ? "negative" : ""}>{summary.hasRealMoney ? `${summary.realProfit >= 0 ? "+" : ""}$${summary.realProfit.toFixed(2)}` : "N/A"}</strong><span>Real profit</span></div>
+        <div><small>CONFIRMED</small><strong>{summary.hasRealMoney ? `${summary.realRoi.toFixed(1)}%` : "N/A"}</strong><span>Real ROI</span></div>
       </section>
 
-      {cards.some((card) => card.cardType === "parlay") ? <Card className="parlay-record">
+      <Card className="performance-specialties" id="specialties">
+        <header><span><BarChart3 /> Category specialties</span><Link href="/leaderboard">View leaderboards <ArrowRight /></Link></header>
+        <p>Your overall rating is only the start. Each pick type has its own rating so your strongest edge is easy to see.</p>
+        {ratings.length ? <div>{[...ratings].sort((a, b) => b.rating - a.rating).map((item, index) => {
+          const rankIndex = ranks.findLastIndex((rank) => item.rating >= rank.floor);
+          const categoryRank = ranks[Math.max(0, rankIndex)];
+          return <article key={item.category}>
+            <span><i>{index + 1}</i><strong>{categoryNames[item.category] ?? item.category.replaceAll("_", " ")}</strong></span>
+            <div><b style={{ color: categoryRank.color }}>{item.rating}</b><small>{categoryRank.name} · {item.gradedPicks} settled</small></div>
+            <em>{item.gradedPicks >= 25 ? "RANKED" : `${Math.max(0, 25 - item.gradedPicks)} TO RANK`}</em>
+          </article>;
+        })}</div> : <div className="specialties-empty"><Target /><span><strong>Your specialties will appear here</strong><small>Lock picks across different markets to discover where your model performs best.</small></span></div>}
+      </Card>
+
+      {cards.some((card) => card.cardType === "parlay") ? <Card className="parlay-record" id="parlays">
         <header><span><Trophy /> Parlay cards</span><Badge>{cards.filter((card) => card.cardType === "parlay").length}</Badge></header>
         <div>{cards.filter((card) => card.cardType === "parlay").slice(0, 6).map((card) => {
           const price = card.combinedAmericanOdds;
@@ -146,7 +180,7 @@ export function PickLedger() {
       </Card> : null}
 
       <div className="pick-content-grid">
-        <Card className="pick-history">
+        <Card className="pick-history" id="history">
           <header><span><Clock3 /> Recent picks</span><Badge>{picks.length}</Badge></header>
           {picks.length ? <div>{picks.map((pick) => {
             const certified = pick.certificationStatus === "certified";
