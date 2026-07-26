@@ -14,6 +14,10 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const matchup = await getMatchupIntelligence(slug);
   if (!matchup) notFound();
+  const firstLine = matchup.alternateLines[0];
+  const selectedQuote = matchup.alternateLines
+    .filter((quote) => quote.line === firstLine.line)
+    .reduce((best, quote) => quote.price > best.price ? quote : best, firstLine);
 
   return (
     <div className="page intelligence-report">
@@ -21,11 +25,11 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
       <Card className="intelligence-hero glass-card">
         <div>
           <Badge tone="accent"><Sparkles size={11} /> AI MATCHUP INTELLIGENCE</Badge>
-          <p>{matchup.startTime} · {matchup.bestSportsbook} best price</p>
+          <p>{matchup.startTime} · STRATIQA best available line</p>
           <h1>{matchup.awayAbbr} <span>vs</span> {matchup.homeAbbr}</h1>
           <h2>{matchup.pick}</h2>
           <p className="ai-summary">{matchup.aiSummary}</p>
-          <TrackPickButton slug={slug} quotes={matchup.alternateLines} live={matchup.providerMode === "live" && Boolean(matchup.providerEventId)} eventName={`${matchup.away} at ${matchup.home}`} confidence={matchup.confidence} expectedValue={matchup.expectedValue} />
+          <TrackPickButton slug={slug} quotes={[selectedQuote]} live={matchup.providerMode === "live" && Boolean(matchup.providerEventId)} eventName={`${matchup.away} at ${matchup.home}`} confidence={matchup.confidence} expectedValue={matchup.expectedValue} />
         </div>
         <div className="intelligence-grade"><ConfidenceRing value={matchup.confidence} size="lg" label="Confidence" /><span>VALUE GRADE<strong>{matchup.valueGrade}</strong></span></div>
       </Card>
@@ -67,7 +71,7 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
           </Card>
           <Card>
             <header><span><BookOpen size={16} /> Best lines</span></header>
-            <div className="sportsbook-list">{matchup.alternateLines.map((quote, index) => <div key={quote.book}><span><strong>{quote.book}</strong><small>{quote.line}</small></span><b>{quote.price > 0 ? "+" : ""}{quote.price}</b>{index === 0 ? <em>BEST</em> : null}</div>)}</div>
+            <div className="sportsbook-list"><div><span><strong>STRATIQA selected</strong><small>{selectedQuote.line}</small></span><b>{selectedQuote.price > 0 ? "+" : ""}{selectedQuote.price}</b><em>BEST</em></div></div>
           </Card>
         </aside>
       </div>

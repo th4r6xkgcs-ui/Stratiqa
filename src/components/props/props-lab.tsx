@@ -17,6 +17,15 @@ function TrendBars({ values }: { values: number[] }) {
   return <div className="prop-trend" aria-label={`Recent results: ${values.join(", ")}`}>{values.map((value, index) => <i key={index} style={{ height: `${Math.max(12, value / max * 100)}%` }} />)}</div>;
 }
 
+function bestOutcomeQuotes(prop: PropData) {
+  const best = new Map<string, NonNullable<PropData["quotes"]>[number]>();
+  for (const quote of prop.quotes ?? []) {
+    const current = best.get(quote.outcomeName);
+    if (!current || quote.price > current.price) best.set(quote.outcomeName, quote);
+  }
+  return [...best.values()];
+}
+
 export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; provider: string; updatedAt: string }) {
   const [filter, setFilter] = useState("All");
   const [sport, setSport] = useState("All");
@@ -41,7 +50,7 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
     {visible.length ? <section className="props-grid">{visible.map((prop) => <Card className="prop-card glass-card" key={prop.id}>
       <header><div><Badge tone={prop.tags.includes("AI Pick") ? "accent" : "success"}>{prop.tags[0]}</Badge><small>{prop.matchup}</small></div><button className={favorites.includes(prop.id) ? "saved" : ""} aria-label={`Favorite ${prop.player}`} onClick={() => toggleFavorite(prop.id)}><Bookmark size={16} fill={favorites.includes(prop.id) ? "currentColor" : "none"} /></button></header>
       <div className="prop-player"><span>{prop.team || leagueNames[prop.providerSportKey ?? ""] || "PROP"}</span><div><h2>{prop.player}</h2><p>{prop.market} · {prop.point ?? prop.line.replace(/^(Over|Under) /, "")}</p></div></div>
-      {prop.quotes?.length ? <div className="prop-book-lines">{prop.quotes.map((quote) => <button key={`${quote.book}-${quote.outcomeName}`} onClick={() => addProp(prop, quote)}><span>{quote.book}<small>{quote.outcomeName} {prop.point}</small></span><b>{quote.price > 0 ? "+" : ""}{quote.price}</b><Plus /></button>)}</div> : <button className="prop-single-line" onClick={() => addProp(prop)}><span>{provider}<small>{prop.line}</small></span><b>{prop.price > 0 ? "+" : ""}{prop.price}</b><Plus /></button>}
+      {prop.quotes?.length ? <div className="prop-book-lines">{bestOutcomeQuotes(prop).map((quote) => <button key={quote.outcomeName} onClick={() => addProp(prop, quote)}><span>{quote.outcomeName} {prop.point}<small>STRATIQA best line</small></span><b>{quote.price > 0 ? "+" : ""}{quote.price}</b><Plus /></button>)}</div> : <button className="prop-single-line" onClick={() => addProp(prop)}><span>{prop.line}<small>STRATIQA line</small></span><b>{prop.price > 0 ? "+" : ""}{prop.price}</b><Plus /></button>}
       <div className="prop-metrics"><span><small>Hit rate</small><strong>{prop.hitRate}%</strong></span><span><small>Expected value</small><strong>+{prop.expectedValue}%</strong></span><span><small>Confidence</small><strong>{prop.confidence}%</strong></span></div>
       <div className="prop-chart-row"><span><small>Last 7</small><TrendBars values={prop.trend} /></span><b>Projection {prop.projection}</b></div>
       <footer><div>{prop.tags.slice(1).map((tag) => <span key={tag}>{tag}</span>)}</div><small>{prop.live ? "LIVE PROVIDER MARKET" : "DEMO ANALYSIS"}</small></footer>

@@ -8,16 +8,16 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ error: "Sign in to track a verified pick." }, { status: 401 });
   const body = await request.json().catch(() => null);
   const slug = typeof body?.slug === "string" ? body.slug : "";
-  const book = typeof body?.book === "string" ? body.book : "";
   const line = typeof body?.line === "string" ? body.line : "";
   const stakeUnits = Number(body?.stakeUnits);
   const ownedModel = await resolveOwnedModel(user.id, body?.modelId);
   const attributionType = ownedModel ? "model" : "judgment";
   const modelName = ownedModel?.name ?? null;
-  if (!slug || !book || !line || !Number.isFinite(stakeUnits) || stakeUnits <= 0 || stakeUnits > 10) return Response.json({ error: "Choose a valid pick and unit size." }, { status: 400 });
+  if (!slug || !line || !Number.isFinite(stakeUnits) || stakeUnits <= 0 || stakeUnits > 10) return Response.json({ error: "Choose a valid pick and unit size." }, { status: 400 });
 
   const matchup = await getMatchupIntelligence(slug);
-  const quote = matchup?.alternateLines.find((item) => item.book === book && item.line === line);
+  const lineQuotes = matchup?.alternateLines.filter((item) => item.line === line) ?? [];
+  const quote = lineQuotes.reduce((best, item) => !best || item.price > best.price ? item : best, undefined as (typeof lineQuotes[number] | undefined));
   if (!matchup || !quote) return Response.json({ error: "That line is no longer available. Refresh and try again." }, { status: 409 });
   if (matchup.providerMode !== "live" || !matchup.providerEventId || !matchup.providerSportKey || !quote.marketKey || !quote.outcomeName) {
     return Response.json({ error: "Verified tracking is available when the live odds feed has this market." }, { status: 409 });
