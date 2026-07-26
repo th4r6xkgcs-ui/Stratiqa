@@ -1,6 +1,6 @@
 import { getSessionUser } from "@/lib/auth/session";
 import { picksRepository, type ProviderPick } from "@/repositories/picks";
-import { getMatchupIntelligence } from "@/services";
+import { getMatchupIntelligence, getPropsBoard } from "@/services";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -10,6 +10,16 @@ export async function POST(request: Request) {
   if (!Array.isArray(body?.legs) || body.legs.length < 1 || body.legs.length > 12 || !Number.isFinite(units) || units <= 0 || units > 10) return Response.json({ error: "Add 1–12 valid selections and choose a unit size." }, { status: 400 });
   const locked: ProviderPick[] = [];
   for (const leg of body.legs) {
+    if (leg?.kind === "prop") {
+      const board = await getPropsBoard();
+      const prop = board.data.find((item) => item.id === leg.propId);
+      const quote = prop?.quotes?.find((item) => item.book === leg.book && item.outcomeName === leg.outcomeName);
+      if (!prop?.live || !quote || !prop.providerEventId || !prop.providerSportKey || !prop.marketKey || prop.point === undefined) return Response.json({ error: "A prop line moved or is no longer provider-verifiable. Refresh Props and try again." }, { status: 409 });
+      if (prop.providerCommenceTime && new Date(prop.providerCommenceTime).getTime() <= Date.now()) return Response.json({ error: `${prop.player} has already started and cannot be locked.` }, { status: 409 });
+      const modelName = typeof leg.modelName === "string" && leg.modelName.trim() ? leg.modelName.trim().slice(0, 60) : null;
+      locked.push({ sport: prop.providerSportKey, category: "player_prop", eventName: prop.matchup, selection: `${quote.outcomeName} ${prop.point} ${prop.market}`, market: prop.marketKey, sportsbook: quote.book, americanOdds: quote.price, stakeUnits: units, confidence: prop.confidence, providerEventId: prop.providerEventId, providerSportKey: prop.providerSportKey, marketKey: prop.marketKey, outcomeName: quote.outcomeName, linePoint: prop.point, participantName: prop.player, attributionType: modelName ? "model" : "judgment", modelName });
+      continue;
+    }
     const slug = typeof leg?.slug === "string" ? leg.slug : "";
     const book = typeof leg?.book === "string" ? leg.book : "";
     const line = typeof leg?.line === "string" ? leg.line : "";

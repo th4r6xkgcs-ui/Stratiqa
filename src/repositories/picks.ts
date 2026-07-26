@@ -16,6 +16,7 @@ export type ProviderPick = Omit<NewPick, "notes"> & {
   providerEventId: string; providerSportKey: string; marketKey: string; outcomeName: string; linePoint: number | null;
   attributionType: "judgment" | "model"; modelName: string | null;
   pickCardId?: string | null;
+  participantName?: string | null;
 };
 
 interface PicksRepository {
@@ -119,7 +120,7 @@ class SupabasePicksRepository implements PicksRepository {
   async createProviderBatch(userId: string, picks: ProviderPick[]) {
     const now = new Date().toISOString();
     const cardId = crypto.randomUUID();
-    const rows = picks.map((pick) => ({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, attribution_type: pick.attributionType, model_name: pick.modelName, pick_card_id: pick.pickCardId ?? cardId, locked_at: now, placed_at: now }));
+    const rows = picks.map((pick) => ({ user_id: userId, sport: pick.sport, category: pick.category, event_name: pick.eventName, selection: pick.selection, market: pick.market, sportsbook: pick.sportsbook, american_odds: pick.americanOdds, stake_units: pick.stakeUnits, confidence: pick.confidence, result: "pending", source: "provider", verification_status: "pending", provider_event_id: pick.providerEventId, provider_sport_key: pick.providerSportKey, market_key: pick.marketKey, outcome_name: pick.outcomeName, line_point: pick.linePoint, participant_name: pick.participantName ?? null, attribution_type: pick.attributionType, model_name: pick.modelName, pick_card_id: pick.pickCardId ?? cardId, locked_at: now, placed_at: now }));
     const response = await fetch(`${this.url}/rest/v1/graded_betting_activity`, { method: "POST", headers: this.headers({ Prefer: "return=representation" }), cache: "no-store", signal: AbortSignal.timeout(8_000), body: JSON.stringify(rows) });
     if (!response.ok) throw new Error(`Pick storage responded with ${response.status}`);
     return (await response.json() as PickRow[]).map(fromRow);

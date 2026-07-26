@@ -12,8 +12,9 @@ async function settlePicks(request: Request) {
   if (!apiKey) return Response.json({ error: "Results provider is not configured." }, { status: 503 });
 
   const pending = await picksRepository.listPendingProvider();
-  const bySport = new Map<string, typeof pending>();
-  for (const pick of pending) {
+  const gameMarkets = pending.filter((pick) => ["h2h", "spreads", "totals"].includes(pick.marketKey ?? ""));
+  const bySport = new Map<string, typeof gameMarkets>();
+  for (const pick of gameMarkets) {
     if (!pick.providerSportKey || !pick.providerEventId) continue;
     bySport.set(pick.providerSportKey, [...(bySport.get(pick.providerSportKey) ?? []), pick]);
   }
@@ -31,7 +32,7 @@ async function settlePicks(request: Request) {
     }
   }
 
-  return Response.json({ checked: pending.length, settled });
+  return Response.json({ checked: gameMarkets.length, pendingProps: pending.length - gameMarkets.length, settled });
 }
 
 export const GET = settlePicks;

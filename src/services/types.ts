@@ -41,6 +41,13 @@ export type PropData = {
   confidence: number;
   trend: number[];
   tags: string[];
+  quotes?: Array<{ book: string; outcomeName: string; price: number }>;
+  providerEventId?: string;
+  providerSportKey?: string;
+  providerCommenceTime?: string;
+  marketKey?: string;
+  point?: number;
+  live?: boolean;
 };
 export type LineMovementData = { matchupId: string; open: number; current: number; sharpPercent: number; moneyPercent: number; ticketPercent: number };
 
