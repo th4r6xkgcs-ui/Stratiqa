@@ -45,7 +45,7 @@ export function PickSlip() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         units: effectiveUnits, sizingMode,
-        legs: legs.map((leg) => ({ kind: leg.kind ?? "matchup", slug: leg.slug, propId: leg.propId, outcomeName: leg.outcomeName, book: leg.book, line: leg.selection, modelId: leg.modelId, modelName: leg.modelName, origin: leg.modelId ? "model" : leg.origin ?? "personal" })),
+        legs: legs.map((leg) => ({ kind: leg.kind ?? "matchup", slug: leg.slug, propId: leg.propId, outcomeName: leg.outcomeName, book: leg.book, line: leg.selection, modelId: leg.modelId, modelName: leg.modelName, origin: leg.modelId ? "model" : leg.origin ?? "personal", coachRecommendationId: leg.coachRecommendationId })),
       }),
     });
     const result = await response.json(); setSaving(false);
@@ -59,9 +59,9 @@ export function PickSlip() {
     <aside className={open ? "global-slip open" : "global-slip"}>
       <header><span><ReceiptText /> STRATIQA SLIP <b>{legs.length}</b></span><button onClick={() => setOpen(false)}><X /></button></header>
       {legs.length ? <>
-        <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>{leg.book}<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>{leg.origin === "model" ? `MY MODEL${leg.modelName ? ` · ${leg.modelName}` : ""}` : leg.origin === "personal" ? "MY PICK" : "STRATIQA PICK"}</em>{!leg.live ? <em>DEMO · NOT VERIFIED</em> : <em className="verified"><ShieldCheck /> VERIFIABLE LINE</em>}</div></article>)}</div>
+        <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>{leg.book}<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>{leg.origin === "model" ? `MY MODEL${leg.modelName ? ` · ${leg.modelName}` : ""}` : leg.origin === "stratiqa" ? "AI COACH PICK" : "MY PICK"}</em>{!leg.live ? <em>DEMO · NOT VERIFIED</em> : <em className="verified"><ShieldCheck /> VERIFIABLE LINE</em>}</div></article>)}</div>
         <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>Overall confidence<b>{analysis.confidence}%</b></span><span>Average EV<b>+{analysis.ev.toFixed(1)}%</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
-        <p className="slip-origin-note"><ShieldCheck /> Pick credit is assigned automatically from where each selection was added. Your model picks count toward both your record and that model&apos;s record.</p>
+        <p className="slip-origin-note"><ShieldCheck /> Credit is automatic: browsed markets are yours, model-board picks belong to your model, and only accepted Coach recommendations are STRATIQA picks.</p>
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
         {analysis.correlated ? <p className="slip-note"><AlertTriangle /> This card contains selections from the same event. Confidence and automatic sizing are reduced.</p> : null}

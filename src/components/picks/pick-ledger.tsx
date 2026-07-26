@@ -136,7 +136,7 @@ export function PickLedger() {
             const rating = ratingReview(pick);
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
-              <div className="pick-result-copy"><small>{pick.pickOrigin === "model" ? `My model${pick.modelName ? ` · ${pick.modelName}` : ""}` : pick.pickOrigin === "stratiqa" ? "STRATIQA pick" : "My pick"} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
+              <div className="pick-result-copy"><small>{pick.pickOrigin === "model" ? `My model${pick.modelName ? ` · ${pick.modelName}` : ""}` : pick.pickOrigin === "stratiqa" ? "AI Coach pick" : "My pick"} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p></div>
               <div className="pick-result-review"><strong>{review}</strong><small>{verified ? rating.detail : pick.verificationStatus === "pending" ? "Auto-settlement pending" : "Practice journal"}</small></div>
               <div className="pick-result-rating">{verified ? <><b>{rating.impact}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;

@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       providerEventId: matchup.providerEventId, providerSportKey: matchup.providerSportKey, marketKey: quote.marketKey,
       outcomeName: quote.outcomeName, linePoint: quote.point ?? null, attributionType, modelId: ownedModel?.id ?? null, modelVersion: ownedModel?.version ?? null, modelName,
       pickOrigin: attributionType === "model" ? "model" : "personal",
+      coachRecommendationId: null,
     });
     return Response.json({ pick }, { status: 201 });
   } catch (error) {

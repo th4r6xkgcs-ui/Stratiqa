@@ -11,6 +11,12 @@ export type MarketEdge = {
   expectedValue: number;
   confidence: number;
   reasons: string[];
+  kind?: "matchup" | "prop";
+  slug?: string;
+  propId?: string;
+  book?: string;
+  outcomeName?: string;
+  live?: boolean;
 };
 
 export type IntelligenceSnapshot = {
@@ -33,6 +39,7 @@ export type CoachReply = {
   alternatives: Array<{ selection: string; expectedValue: number; confidence: number }>;
   followUps: string[];
   snapshot: IntelligenceSnapshot;
+  recommendation?: MarketEdge;
 };
 
 export interface IntelligenceAdapter {

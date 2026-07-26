@@ -9,6 +9,6 @@ export function TrackPickButton({ slug, quotes, live, eventName = "Matchup", con
   const quote = quotes[0];
   return <Button className="track-pick-trigger" onClick={() => addToSlip({
     id: `${slug}:${quote.book}:${quote.line}`, slug, selection: quote.line, eventName, book: quote.book,
-    price: quote.price, confidence, expectedValue, live, origin: "stratiqa",
+    price: quote.price, confidence, expectedValue, live, origin: "personal",
   })}><Plus /> Add to slip</Button>;
 }
