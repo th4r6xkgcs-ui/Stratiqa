@@ -25,8 +25,8 @@ export class LivePropsProvider implements DataProvider<PropData[]> {
     eventsUrl.searchParams.set("apiKey", this.apiKey);
     const eventsResponse = await fetch(eventsUrl, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
     if (!eventsResponse.ok) throw new Error(`Props events responded with ${eventsResponse.status}`);
-    const maxEvents = Math.max(1, Math.min(8, Number(process.env.STRATIQA_PROPS_MAX_EVENTS ?? 3)));
-    const markets = process.env.STRATIQA_PROPS_MARKETS ?? "batter_total_bases,batter_hits,batter_home_runs,pitcher_strikeouts";
+    const maxEvents = Math.max(1, Math.min(8, Number(process.env.STRATIQA_PROPS_MAX_EVENTS ?? 1)));
+    const markets = process.env.STRATIQA_PROPS_MARKETS ?? "batter_total_bases,pitcher_strikeouts";
     const events = (await eventsResponse.json() as ExternalEvent[]).filter((event) => new Date(event.commence_time).getTime() > Date.now()).slice(0, maxEvents);
     const boards = await Promise.all(events.map(async (event) => {
       const url = new URL(`https://api.the-odds-api.com/v4/sports/${this.sport}/events/${event.id}/odds`);
