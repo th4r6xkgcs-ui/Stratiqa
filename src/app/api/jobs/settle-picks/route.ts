@@ -1,35 +1,65 @@
 import { profitForResult } from "@/lib/picks/validation";
 import { settleGameMarket, settlePlayerProp } from "@/lib/picks/settlement.js";
+import { settlementRunStatus } from "@/lib/settlement/operations.js";
+import { getSessionUser } from "@/lib/auth/session";
 import { picksRepository } from "@/repositories/picks";
 import { configuredPlayerStatLeagues, getPlayerStatsProvider } from "@/services/player-stats-provider";
 import { LiveResultsProvider } from "@/services/results-provider";
+import { settlementOperations, type SettlementFailure } from "@/services/settlement-operations";
 
 async function settlePicks(request: Request) {
   const runId = crypto.randomUUID();
   const startedAt = new Date();
   const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  const cronAuthorized = Boolean(secret && request.headers.get("authorization") === `Bearer ${secret}`);
+  const user = request.method === "POST" && !cronAuthorized ? await getSessionUser() : null;
+  const adminEmails = (process.env.STRATIQA_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
+  const manualAuthorized = Boolean(user && adminEmails.includes(user.email.toLowerCase()));
+  if (!cronAuthorized && !manualAuthorized) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
   }
   const apiKey = process.env.STRATIQA_ODDS_API_KEY;
   if (!apiKey) return Response.json({ error: "Results provider is not configured." }, { status: 503 });
 
-  const [pending, recentSettledProps] = await Promise.all([
-    picksRepository.listPendingProvider(),
-    picksRepository.listRecentSettledProps(),
-  ]);
+  let operationsActive = false;
+  let lockAcquired = false;
+  try {
+    lockAcquired = settlementOperations.configured() && await settlementOperations.acquire(runId);
+    operationsActive = lockAcquired;
+    if (settlementOperations.configured() && !lockAcquired) {
+      return Response.json({ runId, status: "already-running", error: "A settlement run is already active." }, { status: 409 });
+    }
+    if (operationsActive) await settlementOperations.start(runId, cronAuthorized ? "cron" : "manual");
+  } catch (error) {
+    console.error("Settlement operations storage unavailable; continuing in compatibility mode", error);
+    if (lockAcquired) {
+      try { await settlementOperations.release(runId); } catch (releaseError) { console.error("Failed to release compatibility lock", releaseError); }
+    }
+    operationsActive = false;
+    lockAcquired = false;
+  }
+
+  const failures: SettlementFailure[] = [];
+  let checkedGames = 0;
+  let checkedProps = 0;
+  let settled = 0;
+  let settledProps = 0;
+  let deferredGames = 0;
+  let deferredProps = 0;
+  let propProviderError: string | null = null;
+  try {
+    const [pending, recentSettledProps] = await Promise.all([
+      picksRepository.listPendingProvider(),
+      picksRepository.listRecentSettledProps(),
+    ]);
   const gameMarkets = pending.filter((pick) => ["h2h", "spreads", "totals"].includes(pick.marketKey ?? ""));
+  checkedGames = gameMarkets.length;
   const bySport = new Map<string, typeof gameMarkets>();
   for (const pick of gameMarkets) {
     if (!pick.providerSportKey || !pick.providerEventId) continue;
     bySport.set(pick.providerSportKey, [...(bySport.get(pick.providerSportKey) ?? []), pick]);
   }
   const provider = new LiveResultsProvider(apiKey);
-  let settled = 0;
-  let settledProps = 0;
-  const failures: Array<{ scope: string; reason: string }> = [];
-  let deferredGames = 0;
-  let deferredProps = 0;
 
   for (const [sportKey, picks] of bySport) {
     try {
@@ -54,7 +84,7 @@ async function settlePicks(request: Request) {
     ...pending.filter((pick) => !["h2h", "spreads", "totals"].includes(pick.marketKey ?? "")),
     ...recentSettledProps,
   ];
-  let propProviderError: string | null = null;
+  checkedProps = props.length;
   if (props.length) {
     try {
       const bySport = new Map<string, typeof props>();
@@ -110,21 +140,27 @@ async function settlePicks(request: Request) {
     }
   }
 
-  return Response.json({
-    runId,
-    status: failures.length ? (settled + settledProps ? "partial" : "deferred") : "complete",
-    startedAt: startedAt.toISOString(),
-    finishedAt: new Date().toISOString(),
-    checkedGames: gameMarkets.length,
-    checkedProps: props.length,
-    settledGames: settled,
-    settledProps,
-    deferredGames,
-    deferredProps,
-    failures,
-    propProvider: propProviderError ?? (configuredPlayerStatLeagues().length ? "configured" : "waiting-for-provider"),
-    configuredLeagues: configuredPlayerStatLeagues(),
-  });
+    const status = settlementRunStatus({ failures: failures.length, settled: settled + settledProps, deferred: deferredGames + deferredProps });
+    const metrics = { checkedGames, checkedProps, settledGames: settled, settledProps, deferredGames, deferredProps, failures };
+    if (operationsActive) await settlementOperations.finish(runId, status, metrics);
+    return Response.json({
+      runId, status, startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(),
+      ...metrics,
+      propProvider: propProviderError ?? (configuredPlayerStatLeagues().length ? "configured" : "waiting-for-provider"),
+      configuredLeagues: configuredPlayerStatLeagues(),
+    });
+  } catch (error) {
+    failures.push({ scope: "settlement-job", reason: error instanceof Error ? error.message : "Settlement job failed" });
+    const metrics = { checkedGames, checkedProps, settledGames: settled, settledProps, deferredGames, deferredProps, failures };
+    if (operationsActive) {
+      try { await settlementOperations.finish(runId, "failed", metrics); } catch (storageError) { console.error("Failed to persist settlement failure", storageError); }
+    }
+    return Response.json({ runId, status: "failed", ...metrics, error: "Settlement run failed safely." }, { status: 503 });
+  } finally {
+    if (lockAcquired) {
+      try { await settlementOperations.release(runId); } catch (error) { console.error("Failed to release settlement lock", error); }
+    }
+  }
 }
 
 export const GET = settlePicks;
