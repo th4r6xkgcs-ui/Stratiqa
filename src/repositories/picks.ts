@@ -11,13 +11,14 @@ export type TrackedPick = {
   attributionType: "judgment" | "model"; modelId: string | null; modelVersion: number | null; modelName: string | null;
   pickOrigin: "stratiqa" | "model" | "personal";
   coachRecommendationId: string | null;
+  pickCardId: string | null;
   certificationStatus: "tracked" | "evidence_pending" | "certified" | "rejected";
   eventCommenceAt: string | null;
   realStakeAmount: number | null; realPayoutAmount: number | null; realProfitAmount: number | null;
   settlementReason: string | null; providerStatValue: number | null; settlementProvider: string | null; settlementRevision: string | null;
   placedAt: string; gradedAt: string | null;
 };
-export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "participantName" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "certificationStatus" | "eventCommenceAt" | "realStakeAmount" | "realPayoutAmount" | "realProfitAmount" | "settlementReason" | "providerStatValue" | "settlementProvider" | "settlementRevision" | "placedAt" | "gradedAt">;
+export type NewPick = Omit<TrackedPick, "id" | "userId" | "closingOdds" | "result" | "profitUnits" | "source" | "verificationStatus" | "providerEventId" | "providerSportKey" | "marketKey" | "outcomeName" | "linePoint" | "participantName" | "attributionType" | "modelId" | "modelVersion" | "modelName" | "pickOrigin" | "coachRecommendationId" | "pickCardId" | "certificationStatus" | "eventCommenceAt" | "realStakeAmount" | "realPayoutAmount" | "realProfitAmount" | "settlementReason" | "providerStatValue" | "settlementProvider" | "settlementRevision" | "placedAt" | "gradedAt">;
 export type CategoryRating = { category: string; rating: number; gradedPicks: number };
 export type TrackedCard = {
   id: string; cardType: "single" | "parlay"; legCount: number; combinedAmericanOdds: number | null;
@@ -68,12 +69,12 @@ class DevelopmentPicksRepository implements PicksRepository {
   async listRatingImpacts() { return []; }
   async listRecentSettledProps() { return []; }
   async create(userId: string, pick: NewPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, participantName: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, certificationStatus: "tracked", eventCommenceAt: null, realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, settlementReason: null, providerStatValue: null, settlementProvider: null, settlementRevision: null, placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, closingOdds: null, result: "pending", profitUnits: null, source: "user", verificationStatus: "unverified", providerEventId: null, providerSportKey: null, marketKey: null, outcomeName: null, linePoint: null, participantName: null, attributionType: "judgment", modelId: null, modelVersion: null, modelName: null, pickOrigin: "personal", coachRecommendationId: null, pickCardId: null, certificationStatus: "tracked", eventCommenceAt: null, realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, settlementReason: null, providerStatValue: null, settlementProvider: null, settlementRevision: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
   async createProvider(userId: string, pick: ProviderPick) {
-    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, participantName: pick.participantName ?? null, notes: "", closingOdds: null, result: "pending", profitUnits: null, source: "provider", verificationStatus: "pending", certificationStatus: "tracked", realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, settlementReason: null, providerStatValue: null, settlementProvider: null, settlementRevision: null, placedAt: new Date().toISOString(), gradedAt: null };
+    const record: TrackedPick = { id: crypto.randomUUID(), userId, ...pick, participantName: pick.participantName ?? null, notes: "", closingOdds: null, result: "pending", profitUnits: null, source: "provider", verificationStatus: "pending", certificationStatus: "tracked", pickCardId: pick.pickCardId ?? null, realStakeAmount: null, realPayoutAmount: null, realProfitAmount: null, settlementReason: null, providerStatValue: null, settlementProvider: null, settlementRevision: null, placedAt: new Date().toISOString(), gradedAt: null };
     developmentStore.set(userId, [record, ...(developmentStore.get(userId) ?? [])]);
     return record;
   }
@@ -109,6 +110,7 @@ type PickRow = {
   attribution_type?: "judgment" | "model"; model_id?: string | null; model_version?: number | null; model_name?: string | null;
   pick_origin?: "stratiqa" | "model" | "personal";
   coach_recommendation_id?: string | null;
+  pick_card_id?: string | null;
   certification_status?: "tracked" | "evidence_pending" | "certified" | "rejected";
   event_commence_at?: string | null;
   real_stake_amount?: number | null; real_payout_amount?: number | null; real_profit_amount?: number | null;
@@ -126,6 +128,7 @@ const fromRow = (row: PickRow): TrackedPick => ({
   attributionType: row.attribution_type ?? "judgment", modelId: row.model_id ?? null, modelVersion: row.model_version ?? null, modelName: row.model_name ?? null,
   pickOrigin: row.pick_origin ?? (row.attribution_type === "model" ? "model" : "personal"),
   coachRecommendationId: row.coach_recommendation_id ?? null,
+  pickCardId: row.pick_card_id ?? null,
   certificationStatus: row.certification_status ?? "tracked", eventCommenceAt: row.event_commence_at ?? null,
   realStakeAmount: row.real_stake_amount == null ? null : Number(row.real_stake_amount),
   realPayoutAmount: row.real_payout_amount == null ? null : Number(row.real_payout_amount),
