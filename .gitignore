@@ -40,6 +40,9 @@ section-dev.log
 # vercel
 .vercel
 
+# supabase
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

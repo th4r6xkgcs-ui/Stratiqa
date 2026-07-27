@@ -9,14 +9,17 @@ create table if not exists public.strategy_portfolios (
 
 alter table public.strategy_portfolios enable row level security;
 
+drop policy if exists "Users can read their own strategy portfolio" on public.strategy_portfolios;
 create policy "Users can read their own strategy portfolio"
 on public.strategy_portfolios for select to authenticated
 using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can insert their own strategy portfolio" on public.strategy_portfolios;
 create policy "Users can insert their own strategy portfolio"
 on public.strategy_portfolios for insert to authenticated
 with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can update their own strategy portfolio" on public.strategy_portfolios;
 create policy "Users can update their own strategy portfolio"
 on public.strategy_portfolios for update to authenticated
 using ((select auth.uid()) = user_id)
