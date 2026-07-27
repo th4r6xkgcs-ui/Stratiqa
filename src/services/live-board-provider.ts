@@ -40,6 +40,8 @@ export class LiveBoardProvider implements DataProvider<LiveBoardEvent[]> {
     url.searchParams.set("dateFormat", "iso");
     const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
     if (!response.ok) throw new Error(`Live board responded with ${response.status}`);
-    return { data: normalizeLiveBoard(await response.json() as ExternalEvent[]), provider: "The Odds API", mode: "live", updatedAt: new Date().toISOString() };
+    const data = normalizeLiveBoard(await response.json() as ExternalEvent[])
+      .filter((event: LiveBoardEvent) => Date.parse(event.commenceTime) > Date.now());
+    return { data, provider: "The Odds API", mode: "live", updatedAt: new Date().toISOString() };
   }
 }

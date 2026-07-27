@@ -94,7 +94,7 @@ export function HomeCommandCenter() {
 
       <Card className="home-focus-card">
         <span className="landing-kicker">YOUR NEXT MOVE</span>
-        {summary.pending.length ? <><Clock3 /><h2>{summary.pending.length} pick{summary.pending.length === 1 ? "" : "s"} in play</h2><p>They are locked. STRATIQA will grade them automatically when official results arrive.</p><Link href="/picks">Follow live picks <ArrowRight /></Link></> : <><Target /><h2>Build today&apos;s card</h2><p>Choose a live market, review the reasoning, and lock the picks you believe in.</p><Link href="/matchups">Explore today&apos;s board <ArrowRight /></Link></>}
+        {summary.pending.length ? <><Clock3 /><h2>{summary.pending.length} pick{summary.pending.length === 1 ? "" : "s"} in play</h2><p>Watch the games and follow picks you locked before they started. No live betting.</p><Link href="/picks">Track my picks <ArrowRight /></Link></> : <><Target /><h2>Build today&apos;s card</h2><p>Choose a pregame market, review the reasoning, and lock your decision before game time.</p><Link href="/matchups">Explore today&apos;s board <ArrowRight /></Link></>}
       </Card>
 
       <Card className="home-best-card">
@@ -117,7 +117,7 @@ export function HomeCommandCenter() {
           <b className={pick.result}>{pick.result === "win" ? <Check /> : pick.result === "loss" ? <X /> : <Clock3 />}</b>
           <span><strong>{pick.selection}</strong><small>{pick.eventName} · {labels[pick.category] ?? pick.category}</small></span>
           <div><strong>{pick.result === "pending" ? "In play" : pick.result.toUpperCase()}</strong><small>{pick.certificationStatus === "certified" ? "Sportsbook confirmed" : pick.result === "pending" ? "Awaiting official result" : "STRATIQA settled"}</small></div>
-        </article>) : <div className="home-empty"><Target /><strong>No live picks yet</strong><p>Find a market and lock your first position.</p><Link href="/matchups">Find picks <ArrowRight /></Link></div>}
+        </article>) : <div className="home-empty"><Target /><strong>No tracked picks yet</strong><p>Find a pregame market and lock your first decision.</p><Link href="/matchups">Find picks <ArrowRight /></Link></div>}
       </Card>
 
       <Card className="home-notifications" id="updates">

@@ -11,7 +11,7 @@ import type { CategoryRating, PickRatingImpact, SettlementAudit, TrackedCard, Tr
 
 const categories = [
   ["player_prop", "Player prop"], ["moneyline", "Moneyline"], ["spread", "Spread"],
-  ["total", "Total"], ["parlay", "Parlay"], ["live", "Live market"],
+  ["total", "Total"], ["parlay", "Parlay"],
 ];
 const sportsbooks = ["DraftKings", "FanDuel", "BetMGM", "Caesars", "Fanatics", "BetRivers", "BetOnline", "Bovada", "MyBookie", "BetUS", "Other"];
 const categoryNames: Record<string, string> = {
@@ -147,7 +147,7 @@ export function PickLedger() {
       </nav>
 
       <section className="performance-explainer" aria-label="How performance is measured">
-        <div><Trophy /><span><strong>STRATIQA performance</strong><small>Every locked live pick builds your rating and category record after automatic settlement.</small></span></div>
+        <div><Trophy /><span><strong>STRATIQA performance</strong><small>Every pick locked before game time builds your rating after automatic settlement.</small></span></div>
         <div><ShieldAlert /><span><strong>Confirmed money stats</strong><small>Sportsbook proof adds real profit and ROI. Without proof, those two fields simply stay N/A.</small></span></div>
       </section>
 
@@ -166,8 +166,8 @@ export function PickLedger() {
         <Card className="pick-next-card">
           <span className="landing-kicker">YOUR NEXT MOVE</span>
           <h2>Make a pick. Build your game.</h2>
-          <p>Lock a live line and it counts toward your STRATIQA rating after automatic settlement. Sportsbook proof is optional.</p>
-          <Link href="/matchups"><Zap /> Find a live pick <ArrowRight /></Link>
+          <p>Lock a pregame line and it counts toward your STRATIQA rating after automatic settlement. Then follow it live here.</p>
+          <Link href="/matchups"><Zap /> Find a pregame pick <ArrowRight /></Link>
           <small><LockKeyhole /> Results are settled automatically—you never grade yourself.</small>
         </Card>
       </section>

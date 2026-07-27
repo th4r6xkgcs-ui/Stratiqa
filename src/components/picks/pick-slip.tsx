@@ -38,7 +38,7 @@ export function PickSlip() {
     return { confidence, ev, risk, grade, winGain, loss, correlated, autoUnits: recommendedUnits(confidence, correlated) };
   }, [legs]);
   async function lock() {
-    if (legs.some((leg) => !leg.live || (leg.kind === "prop" ? !leg.propId : !leg.slug))) return setStatus("Watchlist markets can be analyzed, but only live provider lines can be locked for ratings.");
+    if (legs.some((leg) => !leg.live || (leg.kind === "prop" ? !leg.propId : !leg.slug))) return setStatus("Only provider-verified pregame lines can be locked for ratings.");
     setSaving(true);
     const effectiveUnits = sizingMode === "auto" ? analysis.autoUnits : units;
     const response = await fetch("/api/picks/verified/batch", {
@@ -59,14 +59,14 @@ export function PickSlip() {
     <aside className={open ? "global-slip open" : "global-slip"}>
       <header><span><ReceiptText /> STRATIQA SLIP <b>{legs.length}</b></span><button onClick={() => setOpen(false)}><X /></button></header>
       {legs.length ? <>
-        <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>STRATIQA best line<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>MY PICK</em>{leg.modelName ? <em>MODEL ANALYSIS · {leg.modelName}</em> : null}{!leg.live ? <em>DEMO · NOT TRACKABLE</em> : <em className="verified"><ShieldCheck /> LIVE LINE LOCK</em>}</div></article>)}</div>
+        <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>STRATIQA best line<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>MY PICK</em>{leg.modelName ? <em>MODEL ANALYSIS · {leg.modelName}</em> : null}{!leg.live ? <em>DEMO · NOT TRACKABLE</em> : <em className="verified"><ShieldCheck /> PREGAME LINE LOCK</em>}</div></article>)}</div>
         <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>Overall confidence<b>{analysis.confidence}%</b></span><span>Average EV<b>+{analysis.ev.toFixed(1)}%</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
         <p className="slip-origin-note"><ShieldCheck /> Every selection is your pick. Locking preserves the line for ratings; optional sportsbook proof confirms real-world financial stats.</p>
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
         {analysis.correlated ? <p className="slip-note"><AlertTriangle /> This card contains selections from the same event. Confidence and automatic sizing are reduced.</p> : null}
         <button className="lock-slip" disabled={saving} onClick={lock}><LockKeyhole /> {saving ? "Locking…" : "Lock My Picks"}</button>
-      </> : <div className="global-slip-empty"><ReceiptText /><strong>Your slip is empty</strong><p>Tap any live price or prop to add it here.</p></div>}
+      </> : <div className="global-slip-empty"><ReceiptText /><strong>Your slip is empty</strong><p>Choose a pregame outcome to add it here.</p></div>}
       {status ? <p className="slip-status"><Check /> {status}</p> : null}
       <button className="slip-collapse" onClick={() => setOpen(false)}><ChevronDown /> Keep browsing</button>
     </aside>

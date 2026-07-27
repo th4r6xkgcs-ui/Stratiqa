@@ -126,7 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </label>
           <div className="topbar-actions">
             <AddPickLauncher />
-            <span className="live-pill"><i /> LIVE</span>
+            <span className="live-pill"><i /> GAME TRACKING</span>
             <Link href="/dashboard#updates" aria-label="Notifications"><Bell size={20} /></Link>
             <Link href="/account" className="top-avatar" aria-label="Account and preferences"><Image src="/analyst-heriberto.png" alt="Account profile" width={42} height={42} /><i /></Link>
           </div>

@@ -88,7 +88,7 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
     away: boardEvent!.awayTeam, awayAbbr, home: boardEvent!.homeTeam, homeAbbr,
     startTime: new Date(boardEvent!.commenceTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
     pick: primaryQuote!.line,
-    aiSummary: "STRATIQA is monitoring this live market across available books. Review the current price, market shape, and risk profile before locking your decision.",
+    aiSummary: "STRATIQA is monitoring this pregame market across available books. Review the current price, market shape, and risk profile before locking your decision.",
     winProbability: 55, modelEdge: 4.5, expectedValue: 5.2, confidence: 68, valueGrade: "B",
   };
   const [odds, weather, injuries, stats, market] = await Promise.all([

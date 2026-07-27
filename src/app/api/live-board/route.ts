@@ -6,7 +6,8 @@ export async function GET(request: Request) {
   try {
     const result = await getLiveBoard(sport);
     return Response.json({
-      events: result.data, provider: result.provider, mode: result.mode,
+      events: result.data.filter((event) => Date.parse(event.commenceTime) > Date.now()),
+      provider: result.provider, mode: result.mode,
       updatedAt: result.updatedAt, stale: Boolean(result.stale),
     });
   } catch (error) {

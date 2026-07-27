@@ -5,7 +5,7 @@ import { LiveResultsProvider } from "@/services/results-provider";
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user) return Response.json({ error: "Sign in to follow live picks." }, { status: 401 });
+  if (!user) return Response.json({ error: "Sign in to follow your picks during games." }, { status: 401 });
   const apiKey = process.env.STRATIQA_ODDS_API_KEY;
   const picks = (await picksRepository.list(user.id)).filter((pick) => pick.source === "provider");
   const pending = picks.filter((pick) => pick.result === "pending" && pick.providerEventId && pick.providerSportKey);

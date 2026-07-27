@@ -64,8 +64,8 @@ export function LiveBoard() {
 
   return <div className="page live-board-page">
     <header className="page-header live-board-hero">
-      <div><Badge tone="accent"><Sparkles /> LIVE MARKET BOARD</Badge><h1>Find your pick. Build your rating.</h1><p>Choose the outcome you believe in. STRATIQA automatically locks the best available line.</p></div>
-      <Badge tone={mode === "live" ? "success" : "warning"}>{mode === "live" ? "LIVE ODDS" : mode === "mock" ? "DEMO MODE" : "FEED DELAYED"}</Badge>
+      <div><Badge tone="accent"><Sparkles /> PREGAME PICK BOARD</Badge><h1>Choose before it starts. Track it live.</h1><p>Lock your decision before game time. Once play begins, this becomes a watch-only experience.</p></div>
+      <Badge tone={mode === "live" ? "success" : "warning"}>{mode === "live" ? "PREGAME LINES" : mode === "mock" ? "DEMO MODE" : "FEED DELAYED"}</Badge>
     </header>
 
     <section className="live-board-controls">
@@ -80,13 +80,13 @@ export function LiveBoard() {
     {loading ? <section className="board-loading">{[1, 2, 3].map((item) => <i key={item} />)}</section> :
       visible.length ? <section className="sportsbook-board">{visible.map((event) => {
         return <Card className="sportsbook-event" key={event.id}>
-          <header><div><Badge tone="success">OPEN</Badge><time>{new Date(event.commenceTime).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}</time></div><button className={favorites.includes(event.id) ? "favorite" : ""} onClick={() => toggleFavorite(event.id)} aria-label={`Favorite ${event.awayTeam} at ${event.homeTeam}`}><Heart fill={favorites.includes(event.id) ? "currentColor" : "none"} /></button></header>
+          <header><div><Badge tone="success">PREGAME</Badge><time>Locks at {new Date(event.commenceTime).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}</time></div><button className={favorites.includes(event.id) ? "favorite" : ""} onClick={() => toggleFavorite(event.id)} aria-label={`Favorite ${event.awayTeam} at ${event.homeTeam}`}><Heart fill={favorites.includes(event.id) ? "currentColor" : "none"} /></button></header>
           <div className="board-teams"><span><i>{shortTeam(event.awayTeam)}</i><strong>{event.awayTeam}</strong><small>Away</small></span><b>AT</b><span><i>{shortTeam(event.homeTeam)}</i><strong>{event.homeTeam}</strong><small>Home</small></span></div>
           <div className="board-markets">{(["h2h", "spreads", "totals"] as const).map((market) => {
             const quotes = event.quotes.filter((quote) => quote.marketKey === market);
             return quotes.length ? <Market event={event} marketKey={market} quotes={quotes} key={market} /> : null;
           })}</div>
-          <footer><span><ShieldCheck /> One best line per outcome</span><Link href={`/matchups/${event.slug}`}>View intelligence <ArrowRight /></Link></footer>
+          <footer><span><ShieldCheck /> Pregame picks only · live viewing after lock</span><Link href={`/matchups/${event.slug}`}>View intelligence <ArrowRight /></Link></footer>
         </Card>;
       })}</section> :
       <Card className="board-empty"><CalendarDays /><h2>No open markets here right now</h2><p>This league may be off-season, between slates, or temporarily unavailable. Try another league or date—nothing is broken.</p><button onClick={() => { setSelectedDate("all"); setQuery(""); }}>Clear filters</button></Card>}
