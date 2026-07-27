@@ -9,6 +9,7 @@ import { MockWeatherProvider } from "./weather-provider";
 import { ResilientProvider } from "./runtime";
 import { getProviderEnvironment } from "./environment";
 import type { MatchupIntelligence, ProviderHealth } from "./types";
+import { getMatchupCatalogEntry, matchupCatalog } from "@/lib/matchups/catalog";
 
 const environment = getProviderEnvironment();
 const oddsSource = environment.mode === "live"
@@ -30,21 +31,12 @@ export async function getProviderHealth(): Promise<{ environment: ReturnType<typ
   return { environment: getProviderEnvironment(), providers: Object.values(providers).map((provider) => provider.getHealth()) };
 }
 
-const matchupBase = {
-  "sea-vs-sf": { away: "Seattle Mariners", awayAbbr: "SEA", home: "San Francisco Giants", homeAbbr: "SF", startTime: "7:10 PM", pick: "Seattle Mariners ML", aiSummary: "Seattle owns the strongest risk-adjusted edge on the slate. Bullpen leverage, starting pitching, and a still-playable market price align without a material weather penalty.", winProbability: 63, modelEdge: 13.2, expectedValue: 16.5, confidence: 91, valueGrade: "A+" },
-  "lad-vs-col": { away: "Los Angeles Dodgers", awayAbbr: "LAD", home: "Colorado Rockies", homeAbbr: "COL", startTime: "8:10 PM", pick: "Dodgers -1.5", aiSummary: "Los Angeles has the widest talent gap, though run-line variance and weather-driven scoring keep confidence below Seattle.", winProbability: 72, modelEdge: 10.4, expectedValue: 14.1, confidence: 88, valueGrade: "A" },
-  "nyy-vs-bos": { away: "New York Yankees", awayAbbr: "NYY", home: "Boston Red Sox", homeAbbr: "BOS", startTime: "7:05 PM", pick: "Yankees ML", aiSummary: "New York offers plus-money value with modest sharp alignment. Rivalry volatility and a narrower bullpen edge reduce conviction.", winProbability: 58, modelEdge: 5.6, expectedValue: 8.2, confidence: 74, valueGrade: "B+" },
-  "hou-vs-chw": { away: "Houston Astros", awayAbbr: "HOU", home: "Chicago White Sox", homeAbbr: "CHW", startTime: "8:10 PM", pick: "Astros ML", aiSummary: "Houston grades well across offense and bullpen depth, with the current price preserving a meaningful but not elite margin.", winProbability: 68, modelEdge: 8.7, expectedValue: 11, confidence: 84, valueGrade: "A-" },
-  "min-vs-cle": { away: "Minnesota Twins", awayAbbr: "MIN", home: "Cleveland Guardians", homeAbbr: "CLE", startTime: "7:10 PM", pick: "Twins ML", aiSummary: "Minnesota presents an underdog value case supported by recent contact quality, though Cleveland's late-inning relief narrows the edge.", winProbability: 61, modelEdge: 7.9, expectedValue: 10, confidence: 81, valueGrade: "B+" },
-  "atl-vs-mia": { away: "Atlanta Braves", awayAbbr: "ATL", home: "Miami Marlins", homeAbbr: "MIA", startTime: "8:05 PM", pick: "Braves ML", aiSummary: "Atlanta is a modest model lean rather than a core position. The price is fair, but signal agreement remains below the premium threshold.", winProbability: 57, modelEdge: 4.2, expectedValue: 6, confidence: 69, valueGrade: "B" },
-} as const;
-
 export async function getPropsBoard() {
   return providers.props.getData();
 }
 
 export async function getMatchupIntelligence(slug: string): Promise<MatchupIntelligence | null> {
-  const base = matchupBase[slug as keyof typeof matchupBase];
+  const base = getMatchupCatalogEntry(slug);
   if (!base) return null;
   const [odds, weather, injuries, stats, market] = await Promise.all([
     providers.odds.getData(), providers.weather.getData(), providers.injuries.getData(),
@@ -62,7 +54,10 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
   const injuryImpact = injuryRows.reduce((sum, item) => sum + item.impact, 0);
 
   return {
-    id: slug, ...base, injuryImpact, weatherImpact: resolvedWeather.impact,
+    id: slug, away: base.away, awayAbbr: base.awayAbbr, home: base.home, homeAbbr: base.homeAbbr,
+    startTime: base.startTime, pick: base.pick, aiSummary: base.aiSummary, winProbability: base.winProbability,
+    modelEdge: base.modelEdge, expectedValue: base.expectedValue, confidence: base.confidence, valueGrade: base.valueGrade,
+    injuryImpact, weatherImpact: resolvedWeather.impact,
     bullpenEdge: resolvedStats.bullpenEdge, startingPitchingEdge: resolvedStats.starterEdge,
     recentForm: resolvedStats.recentForm, bestSportsbook: resolvedQuote.bestBook,
     alternateLines: resolvedQuote.quotes, market: resolvedMarket,
@@ -76,5 +71,5 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
 }
 
 export function getSupportedMatchupSlugs() {
-  return Object.keys(matchupBase);
+  return matchupCatalog.map((matchup) => matchup.id);
 }

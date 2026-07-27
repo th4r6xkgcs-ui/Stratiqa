@@ -10,6 +10,8 @@ STRATIQA navigation destinations must render complete, credible product experien
 - `src/components/sections/section-experience.tsx` owns the shared interactive section framework and route-specific representative data.
 - `src/app/analysts/[slug]/page.tsx` owns analyst profile pages.
 - Dashboard and Matchups retain dedicated route implementations because their layouts and workflows are materially distinct.
+- `src/lib/matchups/catalog.ts` owns stable matchup identity and presentation metadata shared by the slate and provider-composed intelligence reports.
+- `src/components/matchups/matchup-workspace.tsx` owns client-side slate search, confidence filters, and locally persisted saved picks.
 
 ## Shared Section Contract
 
