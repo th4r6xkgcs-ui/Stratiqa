@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowLeft, BrainCircuit, Check, Crown, GitCompareArrows, LockKeyhole, MapPin, ShieldCheck, Target, TrendingUp, Trophy } from "lucide-react";
+import { Activity, ArrowLeft, BrainCircuit, Check, Crown, GitCompareArrows, LockKeyhole, MapPin, ShieldCheck, Swords, Target, TrendingUp, Trophy } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 
 type Rating = { category: string; rating: number; gradedPicks: number; wins: number; losses: number; pushes: number; roi: number; clv: number };
@@ -39,16 +39,19 @@ export function PublicAnalystProfile({ slug }: { slug: string }) {
   const [analyst, setAnalyst] = useState<Analyst | null>(null);
   const [comparison, setComparison] = useState<Analyst | null>(null);
   const [candidates, setCandidates] = useState<LeaderOption[]>([]);
+  const [isRival, setIsRival] = useState(false);
   const [status, setStatus] = useState("Loading verified profile…");
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/analysts/${encodeURIComponent(slug)}`, { cache: "no-store" }).then(async (response) => ({ ok: response.ok, result: await response.json() })),
       fetch("/api/leaderboard?category=player_prop", { cache: "no-store" }).then((response) => response.ok ? response.json() : { leaders: [] }),
-    ]).then(([profileResponse, board]) => {
+      fetch("/api/rivals", { cache: "no-store" }).then((response) => response.ok ? response.json() : { rivals: [] }),
+    ]).then(([profileResponse, board, rivalData]) => {
       if (!profileResponse.ok) return setStatus(profileResponse.result.error);
       setAnalyst(profileResponse.result.profile);
       setCandidates((board.leaders ?? []).filter((leader: LeaderOption) => leader.public_slug && leader.public_slug !== slug));
+      setIsRival((rivalData.rivals ?? []).some((rival: { public_slug: string }) => rival.public_slug === slug));
       setStatus("");
     }).catch(() => setStatus("This verified profile could not be loaded."));
   }, [slug]);
@@ -63,13 +66,26 @@ export function PublicAnalystProfile({ slug }: { slug: string }) {
     setStatus("");
   }
 
+  async function toggleRival() {
+    setStatus(isRival ? "Removing rival..." : "Adding rival...");
+    const response = await fetch(isRival ? `/api/rivals?slug=${encodeURIComponent(slug)}` : "/api/rivals", {
+      method: isRival ? "DELETE" : "POST",
+      headers: isRival ? undefined : { "Content-Type": "application/json" },
+      body: isRival ? undefined : JSON.stringify({ slug }),
+    });
+    const result = await response.json();
+    if (!response.ok) return setStatus(result.error);
+    setIsRival(!isRival);
+    setStatus(isRival ? "Removed from your rival board." : "Added to your private rival board.");
+  }
+
   const stats = useMemo(() => analyst ? aggregate(analyst) : null, [analyst]);
   const comparisonStats = useMemo(() => comparison ? aggregate(comparison) : null, [comparison]);
   if (!analyst) return <div className="product-page"><Card className="premium-empty"><Trophy /><strong>{status}</strong><Link href="/leaderboard">Return to leaderboard</Link></Card></div>;
   const realRoi = analyst.realMoney?.stake ? analyst.realMoney.profit / analyst.realMoney.stake * 100 : null;
 
   return <div className="product-page public-profile-page">
-    <div className="public-profile-nav"><Link href="/leaderboard"><ArrowLeft /> Leaderboards</Link><label><GitCompareArrows /> Compare with<select defaultValue="" onChange={(event) => void compare(event.target.value)}><option value="">Choose analyst</option>{candidates.map((candidate) => <option value={candidate.public_slug} key={candidate.public_slug}>{candidate.public_alias}</option>)}</select></label></div>
+    <div className="public-profile-nav"><Link href="/leaderboard"><ArrowLeft /> Leaderboards</Link><div><button type="button" className={isRival ? "active" : ""} onClick={toggleRival}><Swords /> {isRival ? "Rival tracked" : "Add rival"}</button><label><GitCompareArrows /> Compare with<select defaultValue="" onChange={(event) => void compare(event.target.value)}><option value="">Choose analyst</option>{candidates.map((candidate) => <option value={candidate.public_slug} key={candidate.public_slug}>{candidate.public_alias}</option>)}</select></label></div></div>
     <ProfileIdentity analyst={analyst} />
 
     {comparison && comparisonStats && stats ? <Card className="analyst-head-to-head">

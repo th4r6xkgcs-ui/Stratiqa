@@ -13,6 +13,7 @@ import {
   Menu,
   Search,
   Sparkles,
+  Swords,
   Target,
   Trophy,
   UserRound,
@@ -36,6 +37,7 @@ const intelligence = [
 
 const community = [
   { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+  { label: "My Rivals", href: "/rivals", icon: Swords },
 ];
 
 const tools = [
