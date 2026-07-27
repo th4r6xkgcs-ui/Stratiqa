@@ -14,6 +14,8 @@ STRATIQA navigation destinations must render complete, credible product experien
 - `src/components/matchups/matchup-workspace.tsx` owns client-side slate search, confidence filters, and locally persisted saved picks.
 - `src/lib/strategies/builds.ts` defines the shared strategy-build contract, defaults, storage keys, and normalized ranking weights.
 - `src/components/lab/strategy-lab.tsx` owns build tuning and activation. The active build controls Matchups eligibility, ordering, and displayed build-fit scores.
+- `src/hooks/use-strategy-portfolio.ts` provides local-first strategy and tracked-pick state, then hydrates and synchronizes authenticated portfolios through `/api/strategy-portfolio`.
+- `src/repositories/strategy-portfolio.ts` isolates development memory storage from the production Supabase portfolio document.
 
 ## Shared Section Contract
 

@@ -25,6 +25,8 @@ Server events are emitted as single-line JSON with timestamp, level, service, ev
 
 Provider cache and rate limiting currently use process memory. Before running multiple replicas, replace `RateLimiter` and provider cache storage with a shared low-latency store. User preferences also require a persistent production repository.
 
+Apply `supabase/migrations/202607270001_strategy_portfolios.sql` before enabling authenticated strategy portfolio synchronization.
+
 ## Service levels
 
 - Readiness must return HTTP 200 before the load balancer sends traffic.

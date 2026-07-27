@@ -26,4 +26,5 @@
 - [ ] Confirm sitemap and robots endpoints.
 - [ ] Confirm the social-preview image resolves from the production host.
 - [ ] Confirm login throttling and authenticated preferences.
+- [ ] Confirm strategy builds and tracked picks synchronize across authenticated sessions.
 - [ ] Record the deployed SHA and previous known-good image.

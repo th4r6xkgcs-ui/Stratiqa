@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bookmark, Check, Clock3, Search, SlidersHorizontal, Sparkles, Target } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Clock3, Plus, Search, SlidersHorizontal, Sparkles, Target } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePersistentState } from "@/hooks/use-persistent-state";
+import { useStrategyPortfolio } from "@/hooks/use-strategy-portfolio";
 import type { MatchupCatalogEntry } from "@/lib/matchups/catalog";
 import { ConfidenceRing } from "@/components/ui/confidence-ring";
 import { Badge, Card, Metric } from "@/components/ui/primitives";
-import { activeStrategyStorageKey, defaultStrategyBuilds, normalizeWeights, strategyStorageKey, type StrategyBuild } from "@/lib/strategies/builds";
+import { defaultStrategyBuilds, normalizeWeights } from "@/lib/strategies/builds";
 
 const filters = ["All games", "Elite edges", "Plus money", "Saved"] as const;
 type Filter = (typeof filters)[number];
@@ -24,8 +25,7 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
   const [filter, setFilter] = useState<Filter>("All games");
   const [query, setQuery] = useState("");
   const [saved, setSaved] = usePersistentState<string[]>("stratiqa-saved-matchups", []);
-  const [builds] = usePersistentState<StrategyBuild[]>(strategyStorageKey, defaultStrategyBuilds);
-  const [activeId, setActiveId] = usePersistentState(activeStrategyStorageKey, defaultStrategyBuilds[0].id);
+  const { builds, activeBuildId: activeId, setActiveBuildId: setActiveId, trackedPicks, setTrackedPicks, syncState } = useStrategyPortfolio();
   const activeBuild = builds.find((build) => build.id === activeId) ?? builds[0] ?? defaultStrategyBuilds[0];
   const ranked = useMemo(() => {
     const weights = normalizeWeights(activeBuild.weights);
@@ -57,6 +57,22 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
     setSaved((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
 
+  const trackPick = (game: (typeof ranked)[number]) => {
+    if (trackedPicks.some((pick) => pick.matchupId === game.id && pick.buildId === activeBuild.id)) return;
+    setTrackedPicks((current) => [...current, {
+      id: `${game.id}-${activeBuild.id}-${Date.now()}`,
+      matchupId: game.id,
+      selection: game.pick,
+      price: game.price,
+      units: 1,
+      buildId: activeBuild.id,
+      buildName: activeBuild.name,
+      buildScore: game.buildScore,
+      trackedAt: new Date().toISOString(),
+      outcome: "pending",
+    }]);
+  };
+
   return (
     <>
       <section className="matchup-toolbar" aria-label="Matchup filters">
@@ -67,7 +83,7 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
         <span><SlidersHorizontal size={14} /> {visible.length} of {matchups.length}</span>
       </section>
       <section className="active-build-banner">
-        <span><Sparkles size={15} /><small>RANKED BY YOUR BUILD</small><strong>{activeBuild.name}</strong></span>
+        <span><Sparkles size={15} /><small>RANKED BY YOUR BUILD · {syncState === "synced" ? "CLOUD SYNCED" : "LOCAL"}</small><strong>{activeBuild.name}</strong></span>
         <label>Strategy<select value={activeBuild.id} onChange={(event) => setActiveId(event.target.value)}>{builds.map((build) => <option value={build.id} key={build.id}>{build.name}</option>)}</select></label>
         <Link href="/lab">Tune build <ArrowRight size={14} /></Link>
       </section>
@@ -76,6 +92,7 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
         {visible.map((game) => {
           const rank = ranked.findIndex((matchup) => matchup.id === game.id);
           const isSaved = saved.includes(game.id);
+          const isTracked = trackedPicks.some((pick) => pick.matchupId === game.id && pick.buildId === activeBuild.id);
           return (
             <Card className={rank === 0 ? "matchup-card featured" : "matchup-card"} key={game.id}>
               <header>
@@ -94,7 +111,10 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
                 <Metric label="Expected value" value={`+${game.expectedValue}%`} positive />
                 <ConfidenceRing value={game.confidence} size="sm" />
               </footer>
-              <Link href={`/matchups/${game.id}`}>Open intelligence report <ArrowRight size={16} /></Link>
+              <div className="matchup-card-commands">
+                <button className={isTracked ? "tracked" : ""} onClick={() => trackPick(game)} disabled={isTracked}>{isTracked ? <Check size={14} /> : <Plus size={14} />}{isTracked ? "Tracked" : "Track pick"}</button>
+                <Link href={`/matchups/${game.id}`}>Open report <ArrowRight size={16} /></Link>
+              </div>
             </Card>
           );
         })}

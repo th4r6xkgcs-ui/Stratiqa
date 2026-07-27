@@ -12,6 +12,27 @@ export type StrategyBuild = {
   weights: StrategyWeights;
 };
 
+export type PickOutcome = "pending" | "won" | "lost" | "push";
+
+export type TrackedPick = {
+  id: string;
+  matchupId: string;
+  selection: string;
+  price: number;
+  units: number;
+  buildId: string;
+  buildName: string;
+  buildScore: number;
+  trackedAt: string;
+  outcome: PickOutcome;
+};
+
+export type StrategyPortfolio = {
+  builds: StrategyBuild[];
+  activeBuildId: string;
+  trackedPicks: TrackedPick[];
+};
+
 export const defaultStrategyBuilds: StrategyBuild[] = [
   {
     id: "balanced-edge",
@@ -38,6 +59,13 @@ export const defaultStrategyBuilds: StrategyBuild[] = [
 
 export const strategyStorageKey = "stratiqa-strategy-builds";
 export const activeStrategyStorageKey = "stratiqa-active-strategy";
+export const trackedPicksStorageKey = "stratiqa-tracked-picks";
+
+export const defaultStrategyPortfolio: StrategyPortfolio = {
+  builds: defaultStrategyBuilds,
+  activeBuildId: defaultStrategyBuilds[0].id,
+  trackedPicks: [],
+};
 
 export function normalizeWeights(weights: StrategyWeights) {
   const total = weights.confidence + weights.value + weights.market || 1;
@@ -47,3 +75,5 @@ export function normalizeWeights(weights: StrategyWeights) {
     market: weights.market / total,
   };
 }
+
+export { americanProfit, portfolioMetrics } from "./math.js";
