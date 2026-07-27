@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BarChart3, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
+import { lifecycleLabel, pickLifecycle } from "@/lib/picks/lifecycle.js";
 import { ratingImpactExplanation } from "@/lib/notifications/settlement-feed.js";
 import { competitiveStanding } from "@/lib/ratings/competitive-ranks.js";
 import type { CategoryRating, PickRatingImpact, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
@@ -20,6 +21,11 @@ const categoryNames: Record<string, string> = {
   total: "Totals",
   parlay: "Parlays",
   live: "Live Markets",
+};
+type LifecycleState = "upcoming" | "live" | "awaiting" | "settled";
+type LivePickStatus = {
+  pickId: string; state: LifecycleState; homeTeam: string | null; awayTeam: string | null;
+  homeScore: number | null; awayScore: number | null;
 };
 
 function ratingFromPicks(picks: TrackedPick[]) {
@@ -49,6 +55,8 @@ export function PickLedger() {
   const [status, setStatus] = useState("Loading your picks…");
   const [signedIn, setSignedIn] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [liveStatuses, setLiveStatuses] = useState<Record<string, LivePickStatus>>({});
+  const [lifecycleFilter, setLifecycleFilter] = useState<"all" | LifecycleState>("all");
 
   useEffect(() => {
     fetch("/api/picks", { cache: "no-store" })
@@ -69,6 +77,18 @@ export function PickLedger() {
       })
       .catch(() => setStatus("Your picks could not be loaded. Please try again."));
   }, []);
+  useEffect(() => {
+    let active = true;
+    async function refreshLive() {
+      const response = await fetch("/api/picks/live", { cache: "no-store" }).catch(() => null);
+      if (!active || !response?.ok) return;
+      const result = await response.json();
+      setLiveStatuses(Object.fromEntries((result.picks ?? []).map((item: LivePickStatus) => [item.pickId, item])));
+    }
+    refreshLive();
+    const timer = window.setInterval(refreshLive, 90_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
 
   const summary = useMemo(() => {
     const settled = picks.filter((pick) => pick.source === "provider" && pick.verificationStatus === "verified" && pick.result !== "pending");
@@ -88,6 +108,17 @@ export function PickLedger() {
     const hasRealMoney = certified.some((pick) => pick.realStakeAmount !== null && pick.realProfitAmount !== null);
     return { settled: settled.length, certified: certified.length, wins, decisions, rating, rank, next, progress, realProfit, realRoi: realStake ? realProfit / realStake * 100 : 0, hasRealMoney };
   }, [picks, ratings]);
+  const lifecycleCounts = useMemo(() => {
+    const counts: Record<LifecycleState, number> = { upcoming: 0, live: 0, awaiting: 0, settled: 0 };
+    for (const pick of picks.filter((item) => item.source === "provider")) {
+      const state = (liveStatuses[pick.id]?.state ?? pickLifecycle(pick)) as LifecycleState;
+      counts[state] += 1;
+    }
+    return counts;
+  }, [liveStatuses, picks]);
+  const visiblePicks = useMemo(() => picks.filter((pick) => lifecycleFilter === "all" ||
+    (pick.source === "provider" && (liveStatuses[pick.id]?.state ?? pickLifecycle(pick)) === lifecycleFilter)
+  ), [lifecycleFilter, liveStatuses, picks]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -173,19 +204,26 @@ export function PickLedger() {
         <p>Each leg keeps its category record. The complete card separately builds your Parlay rating.</p>
       </Card> : <Card className="parlay-record parlay-record-empty" id="parlays"><header><span><Trophy /> Parlay cards</span><Badge>0</Badge></header><div className="specialties-empty"><Target /><span><strong>No parlays tracked yet</strong><small>Build a multi-leg slip and lock it to begin your separate Parlay rating.</small></span></div></Card>}
 
+      <section className="pick-lifecycle-board" aria-label="Filter picks by status">
+        <button className={lifecycleFilter === "all" ? "active" : ""} onClick={() => setLifecycleFilter("all")}><span>All picks</span><strong>{picks.filter((pick) => pick.source === "provider").length}</strong></button>
+        {(["upcoming", "live", "awaiting", "settled"] as LifecycleState[]).map((state) => <button className={lifecycleFilter === state ? `active ${state}` : state} onClick={() => setLifecycleFilter(state)} key={state}><span>{lifecycleLabel(state)}</span><strong>{lifecycleCounts[state]}</strong>{state === "live" ? <i /> : null}</button>)}
+      </section>
+
       <div className="pick-content-grid">
         <Card className="pick-history" id="history">
           <header><span><Clock3 /> Recent picks</span><Badge>{picks.length}</Badge></header>
-          {picks.length ? <div>{picks.map((pick) => {
+          {visiblePicks.length ? <div>{visiblePicks.map((pick) => {
             const certified = pick.certificationStatus === "certified";
             const verified = pick.source === "provider" && pick.verificationStatus === "verified";
             const rating = ratingReview(pick);
             const exactImpact = ratingImpacts.find((impact) => impact.pickId === pick.id);
             const audit = settlementAudit.filter((entry) => entry.pickId === pick.id);
+            const liveStatus = liveStatuses[pick.id];
+            const lifecycle = (liveStatus?.state ?? pickLifecycle(pick)) as LifecycleState;
             return <article key={pick.id} className={`pick-result-${pick.result}`}>
               <div className="pick-result-mark">{pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "…"}</div>
               <div className="pick-result-copy"><small>My pick{pick.modelName ? ` · Analyzed by ${pick.modelName} v${pick.modelVersion ?? 1}` : ""} · {pick.sport} · {pick.category.replace("_", " ")}</small><strong>{pick.selection}</strong><p>{pick.eventName}</p>{audit.length ? <details className="settlement-details"><summary>Official result details <ChevronDown /></summary>{audit.map((entry) => <span key={entry.id}><b>{entry.previousResult && entry.previousResult !== entry.result ? `${entry.previousResult.toUpperCase()} → ` : ""}{entry.result.toUpperCase()}</b><small>{entry.reason ?? entry.provider}{entry.revision ? ` · Revision ${entry.revision}` : ""}</small><time>{new Date(entry.createdAt).toLocaleString()}</time></span>)}</details> : null}</div>
-              <div className="pick-result-review"><strong>{certified ? "Sportsbook confirmed" : pick.certificationStatus === "evidence_pending" ? "Proof pending" : verified ? "STRATIQA settled" : pick.category === "player_prop" ? "Waiting for official stats" : "Awaiting result"}</strong><small>{exactImpact ? ratingImpactExplanation(pick, exactImpact) : pick.settlementReason ?? (verified ? rating.detail : "Automatic result pending")}</small></div>
+              <div className="pick-result-review"><span className={`pick-lifecycle-status ${lifecycle}`}>{lifecycle === "live" ? <i /> : null}{lifecycleLabel(lifecycle)}{liveStatus && liveStatus.homeScore !== null && liveStatus.awayScore !== null ? ` · ${liveStatus.awayTeam} ${liveStatus.awayScore}–${liveStatus.homeScore} ${liveStatus.homeTeam}` : ""}</span><strong>{certified ? "Sportsbook confirmed" : pick.certificationStatus === "evidence_pending" ? "Proof pending" : verified ? "STRATIQA settled" : pick.category === "player_prop" ? "Waiting for official stats" : "Awaiting result"}</strong><small>{exactImpact ? ratingImpactExplanation(pick, exactImpact) : pick.settlementReason ?? (verified ? rating.detail : "Automatic result pending")}</small></div>
               <div className="pick-result-rating">{verified ? exactImpact ? <><b>{exactImpact.ratingChange > 0 ? "+" : ""}{Math.round(exactImpact.ratingChange)}</b><small>rating</small></> : <><b>{rating.impact}</b><small>rating</small></> : <LockKeyhole />}</div>
             </article>;
           })}</div> : <div className="ledger-empty"><Target /><strong>Your journey starts with one pick</strong><p>Open Matchups, find a position you believe in, and start building your verified rating.</p><Link href="/matchups">Explore matchups <ArrowRight /></Link></div>}

@@ -80,7 +80,7 @@ export function HomeCommandCenter() {
   return <div className="dashboard-page home-command">
     <section className="home-welcome">
       <div><Badge tone="accent"><Sparkles /> YOUR COMMAND CENTER</Badge><h1>Welcome back{profile.public_alias ? `, ${profile.public_alias}` : ""}.</h1><p>One clear view of your picks, rating, models, and next move.</p></div>
-      <div className="home-primary-actions"><Link href="/matchups"><Search /> Find picks</Link><Link href="/props"><Target /> Browse props</Link><Link href="/picks"><Trophy /> My performance</Link></div>
+      <div className="home-primary-actions"><Link href="/matchups"><Search /> Find a Pick</Link><Link href="/picks#history"><Target /> Track My Picks</Link><Link href="/leaderboard"><Trophy /> Build My Rating</Link></div>
     </section>
 
     <section className="home-journey-grid">
