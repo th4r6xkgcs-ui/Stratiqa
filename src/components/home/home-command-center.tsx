@@ -6,6 +6,7 @@ import { ArrowDown, ArrowRight, ArrowUp, Bell, BrainCircuit, Check, ChevronDown,
 import { Badge, Card } from "@/components/ui/primitives";
 import { dashboardPresets, dashboardWidgetIds, defaultDashboardLayout, normalizeDashboardLayout, type DashboardLayout, type DashboardWidgetId, type DashboardWidgetSize } from "@/lib/dashboard/layout";
 import { buildSettlementFeed } from "@/lib/notifications/settlement-feed.js";
+import { modelNextMilestone } from "@/lib/models/achievements.js";
 import { competitiveStanding } from "@/lib/ratings/competitive-ranks.js";
 import type { CategoryRating, PickRatingImpact, SettlementAudit, TrackedCard, TrackedPick } from "@/repositories/picks";
 import type { ManagedModel } from "@/components/models/model-command-center";
@@ -150,6 +151,7 @@ export function HomeCommandCenter() {
     if (profile.leaderboard_opt_in && summary.strongest?.gradedPicks >= 25) items.push({ id: "leaderboard-ready", tone: "win", title: "Your public ranking is live", detail: `${labels[summary.strongest.category] ?? summary.strongest.category} is now eligible for competition`, href: "/leaderboard" });
     return items.filter((item) => !dismissed.includes(item.id)).slice(0, 5);
   }, [dismissed, models, picks, profile.leaderboard_opt_in, ratingImpacts, settlementAudit, summary.strongest]);
+  const bestModelMilestone = modelNextMilestone(summary.bestModel);
 
   if (loading) return <div className="dashboard-page home-command"><div className="home-loading">{[1, 2, 3, 4, 5].map((item) => <i key={item} />)}</div></div>;
 
@@ -185,7 +187,7 @@ export function HomeCommandCenter() {
       {!dashboardLayout.hidden.includes("best") ? <div {...widgetProps("best")}>{controls("best")}
       <Card className="home-best-card">
         <span className="landing-kicker">STRONGEST RIGHT NOW</span>
-        {summary.bestModel && (!summary.strongest || summary.bestModel.performance.rating >= summary.strongest.rating) ? <><BrainCircuit /><h2>{summary.bestModel.name}</h2><strong>{summary.bestModel.performance.rating}<small> model rating</small></strong><p>{summary.bestModel.sport} · {labels[summary.bestModel.category] ?? summary.bestModel.category} · {summary.bestModel.performance.verified} settled</p><Link href="/lab">Open Model Arena <ArrowRight /></Link></> : summary.strongest ? <><Crown /><h2>{labels[summary.strongest.category] ?? summary.strongest.category}</h2><strong>{Math.round(summary.strongest.rating)}<small> category rating</small></strong><p>{summary.strongest.gradedPicks} automatically settled picks</p><Link href="/leaderboard">View category ranking <ArrowRight /></Link></> : <><BrainCircuit /><h2>Find your specialty</h2><p>Your strongest category and model will appear as verified results accumulate.</p><Link href="/lab">Build a model <ArrowRight /></Link></>}
+        {summary.bestModel && (!summary.strongest || summary.bestModel.performance.rating >= summary.strongest.rating) ? <><BrainCircuit /><h2>{summary.bestModel.name}</h2><strong>{summary.bestModel.performance.rating}<small> model rating</small></strong><p>{summary.bestModel.sport} · {labels[summary.bestModel.category] ?? summary.bestModel.category} · {summary.bestModel.performance.verified} settled</p><small className="home-model-milestone"><Target /> {bestModelMilestone.title}{bestModelMilestone.remaining ? ` · ${bestModelMilestone.remaining} remaining` : ""}</small><Link href="/lab">Open Model Arena <ArrowRight /></Link></> : summary.strongest ? <><Crown /><h2>{labels[summary.strongest.category] ?? summary.strongest.category}</h2><strong>{Math.round(summary.strongest.rating)}<small> category rating</small></strong><p>{summary.strongest.gradedPicks} automatically settled picks</p><Link href="/leaderboard">View category ranking <ArrowRight /></Link></> : <><BrainCircuit /><h2>Find your specialty</h2><p>Your strongest category and model will appear as verified results accumulate.</p><Link href="/lab">Build a model <ArrowRight /></Link></>}
       </Card>
       </div> : null}
 
