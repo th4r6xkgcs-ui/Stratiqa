@@ -71,7 +71,7 @@ export async function PATCH(request: Request, context: Context) {
   return Response.json({ model: (await response.json() as ModelRow[])[0] });
 }
 
-export async function POST(_: Request, context: Context) {
+export async function POST(request: Request, context: Context) {
   const user = await getSessionUser();
   if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
   const { id } = await context.params;
@@ -79,10 +79,15 @@ export async function POST(_: Request, context: Context) {
   if (!url || !key) return Response.json({ error: "Model storage is not configured." }, { status: 503 });
   const model = await ownedModel(url, key, user.id, id);
   if (!model) return Response.json({ error: "Model not found." }, { status: 404 });
+  const body = await request.json().catch(() => null);
   const suffix = crypto.randomUUID().slice(0, 4).toUpperCase();
+  const suggestedWeights = body?.suggestedWeights && typeof body.suggestedWeights === "object"
+    ? Object.fromEntries(model.factors.map((factor) => [factor, Math.max(5, Math.min(60, Number(body.suggestedWeights[factor]) || Number(model.weights[factor]) || 20))]))
+    : model.weights;
+  const requestedName = typeof body?.name === "string" ? body.name.trim().slice(0, 60) : "";
   const response = await fetch(`${url}/rest/v1/analyst_models`, {
     method: "POST", headers: headers(key, { Prefer: "return=representation" }),
-    body: JSON.stringify({ user_id: user.id, name: `${model.name} Experiment ${suffix}`, sport: model.sport, category: model.category, description: `Experiment based on ${model.name} v${model.version}.`, factors: model.factors, strategy: model.strategy, risk_profile: model.risk_profile, weights: model.weights, status: "testing" }),
+    body: JSON.stringify({ user_id: user.id, name: requestedName || `${model.name} Challenger ${suffix}`, sport: model.sport, category: model.category, description: `Challenger based on ${model.name} v${model.version}. Champion history remains unchanged.`, factors: model.factors, strategy: model.strategy, risk_profile: model.risk_profile, weights: suggestedWeights, status: "testing" }),
   });
   if (!response.ok) return Response.json({ error: "The experiment could not be created." }, { status: 503 });
   return Response.json({ model: (await response.json() as ModelRow[])[0] }, { status: 201 });
