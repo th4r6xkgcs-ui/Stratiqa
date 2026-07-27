@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Activity, ArrowLeft, BrainCircuit, Check, Crown, GitCompareArrows, LockKeyhole, MapPin, ShieldCheck, Swords, Target, TrendingUp, Trophy } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
+import { verifiedAchievements } from "@/lib/ratings/achievements.js";
+import { categoryForm } from "@/lib/ratings/competitive-overview.js";
 
 type Rating = { category: string; rating: number; gradedPicks: number; wins: number; losses: number; pushes: number; roi: number; clv: number };
 type Model = { id: string; name: string; sport: string; category: string; version: number; rating: number; gradedPicks: number };
@@ -83,6 +85,10 @@ export function PublicAnalystProfile({ slug }: { slug: string }) {
   const comparisonStats = useMemo(() => comparison ? aggregate(comparison) : null, [comparison]);
   if (!analyst) return <div className="product-page"><Card className="premium-empty"><Trophy /><strong>{status}</strong><Link href="/leaderboard">Return to leaderboard</Link></Card></div>;
   const realRoi = analyst.realMoney?.stake ? analyst.realMoney.profit / analyst.realMoney.stake * 100 : null;
+  const publicAchievements = verifiedAchievements({
+    categories: analyst.ratings.map((rating) => ({ ...rating, form: categoryForm(analyst.recentPicks, rating.category), globalRank: null, regionRank: null })),
+    settledPicks: stats?.samples ?? 0,
+  });
 
   return <div className="product-page public-profile-page">
     <div className="public-profile-nav"><Link href="/leaderboard"><ArrowLeft /> Leaderboards</Link><div><button type="button" className={isRival ? "active" : ""} onClick={toggleRival}><Swords /> {isRival ? "Rival tracked" : "Add rival"}</button><label><GitCompareArrows /> Compare with<select defaultValue="" onChange={(event) => void compare(event.target.value)}><option value="">Choose analyst</option>{candidates.map((candidate) => <option value={candidate.public_slug} key={candidate.public_slug}>{candidate.public_alias}</option>)}</select></label></div></div>
@@ -108,8 +114,8 @@ export function PublicAnalystProfile({ slug }: { slug: string }) {
         {analyst.ratings.length ? analyst.ratings.map((rating, index) => <article key={rating.category}><b>#{index + 1}</b><span><strong>{labels[rating.category] ?? rating.category}</strong><small>{rating.wins}-{rating.losses} · {rating.gradedPicks} settled</small></span><strong>{Math.round(rating.rating)}</strong><em>{rating.gradedPicks >= 25 ? "RANKED" : "PROVISIONAL"}</em></article>) : <div className="public-private-state"><Target /><strong>No category record yet</strong></div>}
       </Card>
       <Card className="public-achievements">
-        <header><span><Crown /> Earned distinctions</span></header>
-        <div><span className={(stats?.samples ?? 0) >= 25 ? "earned" : ""}><ShieldCheck /><strong>Verified Competitor</strong><small>25 settled picks</small></span><span className={(analyst.ratings[0]?.rating ?? 0) >= 1650 ? "earned" : ""}><Trophy /><strong>Category Sharp</strong><small>1650 category rating</small></span><span className={analyst.models.some((model) => model.gradedPicks >= 10) ? "earned" : ""}><BrainCircuit /><strong>Model Builder</strong><small>Ranked competitive model</small></span></div>
+        <header><span><Crown /> Permanent trophies</span><Badge tone="success">{publicAchievements.filter((item) => item.earned).length}</Badge></header>
+        <div>{publicAchievements.filter((item) => item.earned).map((item) => <span className="earned" key={item.id}><Trophy /><strong>{item.name}</strong><small>{item.detail}</small></span>)}{!publicAchievements.some((item) => item.earned) ? <span><ShieldCheck /><strong>Building a verified legacy</strong><small>Trophies appear after official milestones.</small></span> : null}</div>
       </Card>
     </div>
 

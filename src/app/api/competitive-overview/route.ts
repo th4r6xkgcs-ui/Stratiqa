@@ -1,5 +1,6 @@
 import { getSessionUser } from "@/lib/auth/session";
 import { categoryForm, nextCompetitiveGoal } from "@/lib/ratings/competitive-overview.js";
+import { seasonalCategoryForm, verifiedAchievements } from "@/lib/ratings/achievements.js";
 import { picksRepository } from "@/repositories/picks";
 
 type SnapshotRow = {
@@ -39,9 +40,12 @@ export async function GET() {
       form: categoryForm(picks, rating.category),
     };
   }).sort((a, b) => b.rating - a.rating);
+  const settledPicks = picks.filter((pick) => pick.source === "provider" && ["win", "loss", "push"].includes(pick.result));
   return Response.json({
     categories,
     goal: nextCompetitiveGoal(categories),
-    settledPicks: picks.filter((pick) => pick.source === "provider" && ["win", "loss", "push"].includes(pick.result)).length,
+    settledPicks: settledPicks.length,
+    season: seasonalCategoryForm(settledPicks),
+    achievements: verifiedAchievements({ categories, settledPicks: settledPicks.length }),
   });
 }

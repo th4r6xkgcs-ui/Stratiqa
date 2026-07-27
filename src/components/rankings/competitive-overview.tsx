@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Crown, Flame, Globe2, MapPin, ShieldCheck, Sparkles, Target, Trophy } from "lucide-react";
+import { ArrowRight, CalendarDays, Crown, Flame, Globe2, LockKeyhole, Medal, MapPin, ShieldCheck, Sparkles, Target, Trophy } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 import { competitiveStanding } from "@/lib/ratings/competitive-ranks.js";
 
@@ -12,7 +12,9 @@ type Category = {
   form: { streak: number; streakResult: "win" | "loss" | null; recent: string[]; recentWinRate: number | null };
 };
 type Goal = { kind: "start" | "placement" | "top10" | "defend"; category: string | null; value: number };
-type Overview = { categories: Category[]; goal: Goal; settledPicks: number };
+type Achievement = { id: string; name: string; detail: string; earned: boolean; progress: number };
+type Season = { key: string; startsAt: string; endsAt: string; daysRemaining: number; categories: Array<{ category: string; settled: number; wins: number; losses: number; pushes: number }> };
+type Overview = { categories: Category[]; goal: Goal; settledPicks: number; season: Season; achievements: Achievement[] };
 const labels: Record<string, string> = { player_prop: "Player Props", moneyline: "Moneylines", spread: "Spreads", total: "Totals", parlay: "Parlays" };
 
 function goalCopy(goal: Goal) {
@@ -48,6 +50,17 @@ export function CompetitiveOverview() {
       <Card className="competition-next-goal"><Target /><span><small>YOUR NEXT CLIMB</small><strong>{goal.title}</strong><p>{goal.detail}</p></span><Link href="/matchups">Find next edge <ArrowRight /></Link></Card>
       <Card className={`competition-streak ${activeStreak?.form.streakResult ?? ""}`}><Flame /><span><small>ACTIVE FORM</small><strong>{activeStreak ? `${activeStreak.form.streak}${activeStreak.form.streakResult === "win" ? "W" : "L"} ${labels[activeStreak.category] ?? activeStreak.category} streak` : "No active streak yet"}</strong><p>{activeStreak?.form.recentWinRate != null ? `${activeStreak.form.recentWinRate}% across the latest decisions` : "Recent verified form appears here."}</p></span></Card>
     </div>
+
+    <section className="season-achievement-grid">
+      <Card className="season-command">
+        <header><div><CalendarDays /><span><strong>{overview.season.key} season</strong><small>{overview.season.daysRemaining} days remaining · lifetime ratings never reset</small></span></div><Badge tone="accent">10 PICKS TO PLACE</Badge></header>
+        {overview.season.categories.length ? <div>{overview.season.categories.slice(0, 5).map((item) => <article key={item.category}><span><strong>{labels[item.category] ?? item.category}</strong><small>{item.wins}-{item.losses}{item.pushes ? `-${item.pushes}` : ""} this season</small></span><div><i><em style={{ width: `${Math.min(100, item.settled / 10 * 100)}%` }} /></i><b>{item.settled >= 10 ? "PLACED" : `${10 - item.settled} LEFT`}</b></div></article>)}</div> : <div className="season-empty"><Target /><strong>Your new season is open</strong><p>Your next automatically settled pick begins this quarter&apos;s placement.</p></div>}
+      </Card>
+      <Card className="trophy-cabinet">
+        <header><div><Medal /><span><strong>Permanent trophy cabinet</strong><small>Earned from verified results only</small></span></div><Badge tone="success">{overview.achievements.filter((item) => item.earned).length} EARNED</Badge></header>
+        <div>{overview.achievements.map((item) => <article className={item.earned ? "earned" : ""} key={item.id}>{item.earned ? <Trophy /> : <LockKeyhole />}<span><strong>{item.name}</strong><small>{item.detail}</small><i><em style={{ width: `${item.progress}%` }} /></i></span></article>)}</div>
+      </Card>
+    </section>
 
     <Card className="competition-category-matrix">
       <header><div><Trophy /><span><strong>Your category ladder</strong><small>Separate ratings reveal what you actually do best.</small></span></div><Badge tone="success"><ShieldCheck /> VERIFIED ONLY</Badge></header>
