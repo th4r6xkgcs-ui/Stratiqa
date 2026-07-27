@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bookmark, Check, Clock3, Search, SlidersHorizontal, Target } from "lucide-react";
+import { ArrowRight, Bookmark, Check, Clock3, Search, SlidersHorizontal, Sparkles, Target } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import type { MatchupCatalogEntry } from "@/lib/matchups/catalog";
 import { ConfidenceRing } from "@/components/ui/confidence-ring";
 import { Badge, Card, Metric } from "@/components/ui/primitives";
+import { activeStrategyStorageKey, defaultStrategyBuilds, normalizeWeights, strategyStorageKey, type StrategyBuild } from "@/lib/strategies/builds";
 
 const filters = ["All games", "Elite edges", "Plus money", "Saved"] as const;
 type Filter = (typeof filters)[number];
@@ -23,9 +24,26 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
   const [filter, setFilter] = useState<Filter>("All games");
   const [query, setQuery] = useState("");
   const [saved, setSaved] = usePersistentState<string[]>("stratiqa-saved-matchups", []);
+  const [builds] = usePersistentState<StrategyBuild[]>(strategyStorageKey, defaultStrategyBuilds);
+  const [activeId, setActiveId] = usePersistentState(activeStrategyStorageKey, defaultStrategyBuilds[0].id);
+  const activeBuild = builds.find((build) => build.id === activeId) ?? builds[0] ?? defaultStrategyBuilds[0];
+  const ranked = useMemo(() => {
+    const weights = normalizeWeights(activeBuild.weights);
+    return matchups
+      .filter((matchup) => matchup.confidence >= activeBuild.minimumConfidence)
+      .map((matchup) => ({
+        ...matchup,
+        buildScore: Math.round(
+          matchup.confidence * weights.confidence
+          + Math.min(100, matchup.expectedValue * 5) * weights.value
+          + matchup.marketSignal * weights.market,
+        ),
+      }))
+      .sort((a, b) => b.buildScore - a.buildScore);
+  }, [activeBuild, matchups]);
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return matchups.filter((matchup) => {
+    return ranked.filter((matchup) => {
       const matchesSearch = !normalized || `${matchup.away} ${matchup.home} ${matchup.pick}`.toLowerCase().includes(normalized);
       const matchesFilter = filter === "All games"
         || (filter === "Elite edges" && matchup.confidence >= 85)
@@ -33,7 +51,7 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
         || (filter === "Saved" && saved.includes(matchup.id));
       return matchesSearch && matchesFilter;
     });
-  }, [filter, matchups, query, saved]);
+  }, [filter, query, ranked, saved]);
 
   const toggleSaved = (id: string) => {
     setSaved((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -48,15 +66,20 @@ export function MatchupWorkspace({ matchups }: { matchups: MatchupCatalogEntry[]
         </div>
         <span><SlidersHorizontal size={14} /> {visible.length} of {matchups.length}</span>
       </section>
+      <section className="active-build-banner">
+        <span><Sparkles size={15} /><small>RANKED BY YOUR BUILD</small><strong>{activeBuild.name}</strong></span>
+        <label>Strategy<select value={activeBuild.id} onChange={(event) => setActiveId(event.target.value)}>{builds.map((build) => <option value={build.id} key={build.id}>{build.name}</option>)}</select></label>
+        <Link href="/lab">Tune build <ArrowRight size={14} /></Link>
+      </section>
 
       {visible.length ? <section className="matchup-grid" aria-live="polite">
         {visible.map((game) => {
-          const rank = matchups.findIndex((matchup) => matchup.id === game.id);
+          const rank = ranked.findIndex((matchup) => matchup.id === game.id);
           const isSaved = saved.includes(game.id);
           return (
             <Card className={rank === 0 ? "matchup-card featured" : "matchup-card"} key={game.id}>
               <header>
-                <div><span className="rank">#{rank + 1}</span><Badge tone={rank < 3 ? "success" : "neutral"}>{labelFor(game, rank)}</Badge></div>
+                <div><span className="rank">#{rank + 1}</span><Badge tone={rank < 3 ? "success" : "neutral"}>{labelFor(game, rank)}</Badge><Badge tone="accent">{game.buildScore} BUILD FIT</Badge></div>
                 <div className="matchup-card-actions"><time><Clock3 size={13} /> {game.startTime}</time><button className={isSaved ? "saved" : ""} onClick={() => toggleSaved(game.id)} aria-label={`${isSaved ? "Remove" : "Save"} ${game.away} versus ${game.home}`}>{isSaved ? <Check size={14} /> : <Bookmark size={14} />}</button></div>
               </header>
               <div className="matchup-teams">

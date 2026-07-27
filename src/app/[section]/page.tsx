@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { SectionExperience } from "@/components/sections/section-experience";
+import { StrategyLab } from "@/components/lab/strategy-lab";
 
 const sectionSlugs = [
   "teams", "players", "community", "friends", "leaderboard",
@@ -17,5 +18,6 @@ export default async function SectionPage({
 }) {
   const { section } = await params;
   if (!sectionSlugs.includes(section)) notFound();
+  if (section === "lab") return <StrategyLab />;
   return <SectionExperience section={section} />;
 }

@@ -12,6 +12,8 @@ STRATIQA navigation destinations must render complete, credible product experien
 - Dashboard and Matchups retain dedicated route implementations because their layouts and workflows are materially distinct.
 - `src/lib/matchups/catalog.ts` owns stable matchup identity and presentation metadata shared by the slate and provider-composed intelligence reports.
 - `src/components/matchups/matchup-workspace.tsx` owns client-side slate search, confidence filters, and locally persisted saved picks.
+- `src/lib/strategies/builds.ts` defines the shared strategy-build contract, defaults, storage keys, and normalized ranking weights.
+- `src/components/lab/strategy-lab.tsx` owns build tuning and activation. The active build controls Matchups eligibility, ordering, and displayed build-fit scores.
 
 ## Shared Section Contract
 
