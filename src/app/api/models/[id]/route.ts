@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth/session";
+import { modelValidationSummary } from "@/lib/models/validation.js";
 
 const factors = new Set(["market_value", "recent_form", "injuries", "weather", "matchup", "line_movement", "player_usage", "bullpen"]);
 const risks = new Set(["selective", "balanced", "opportunistic"]);
@@ -20,9 +21,17 @@ export async function GET(_: Request, context: Context) {
   if (!url || !key) return Response.json({ versions: [] });
   const model = await ownedModel(url, key, user.id, id);
   if (!model) return Response.json({ error: "Model not found." }, { status: 404 });
-  const response = await fetch(`${url}/rest/v1/analyst_model_versions?model_id=eq.${id}&user_id=eq.${user.id}&select=*&order=version.desc`, { headers: headers(key), cache: "no-store" });
+  const [response, picksResponse] = await Promise.all([
+    fetch(`${url}/rest/v1/analyst_model_versions?model_id=eq.${id}&user_id=eq.${user.id}&select=*&order=version.desc`, { headers: headers(key), cache: "no-store" }),
+    fetch(`${url}/rest/v1/graded_betting_activity?model_id=eq.${id}&user_id=eq.${user.id}&verification_status=eq.verified&result=in.(win,loss,push)&select=model_version,result,stake_units,profit_units,graded_at`, { headers: headers(key), cache: "no-store" }),
+  ]);
   if (!response.ok) return Response.json({ error: "Version history is unavailable." }, { status: 503 });
-  return Response.json({ versions: [{ ...model, current: true }, ...await response.json() as unknown[]] });
+  const archived = await response.json() as Array<Record<string, unknown> & { version: number }>;
+  const picks = picksResponse.ok ? await picksResponse.json() as Array<{ model_version: number | null; result: string; stake_units: number | null; profit_units: number | null; graded_at: string | null }> : [];
+  const withPerformance = (version: Record<string, unknown> & { version: number }, current = false) => ({
+    ...version, current, performance: modelValidationSummary(picks.filter((pick) => pick.model_version === version.version)),
+  });
+  return Response.json({ versions: [withPerformance(model, true), ...archived.map((version) => withPerformance(version))] });
 }
 
 export async function PATCH(request: Request, context: Context) {

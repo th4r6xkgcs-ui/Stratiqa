@@ -19,6 +19,12 @@ const factorOptions = [
   ["player_usage", "Player opportunity", "Track minutes, touches, and roles"], ["bullpen", "Bullpen strength", "Measure late-game pitching depth"],
 ];
 const riskOptions = [["selective", "Precision", "Fewer picks with stronger agreement"], ["balanced", "Balanced", "A practical mix of quality and opportunity"], ["opportunistic", "Explorer", "More chances when upside is compelling"]];
+const templates = [
+  { name: "Value Hunter", category: "moneyline", factors: ["market_value", "line_movement", "matchup"], strategy: "market_value", risk: "selective" },
+  { name: "Props Specialist", category: "player_prop", factors: ["player_usage", "recent_form", "matchup"], strategy: "player_usage", risk: "balanced" },
+  { name: "Totals Reader", category: "total", factors: ["recent_form", "weather", "matchup"], strategy: "matchup", risk: "balanced" },
+  { name: "Spread Analyst", category: "spread", factors: ["market_value", "injuries", "recent_form"], strategy: "injuries", risk: "selective" },
+];
 const label = (value: string) => factorOptions.find(([key]) => key === value)?.[1] ?? value.replace("_", " ");
 
 export function ModelWorkshop() {
@@ -32,6 +38,7 @@ export function ModelWorkshop() {
   const [risk, setRisk] = useState("balanced");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [weights, setWeights] = useState<Record<string, number>>(() => factorWeights(selected, strategy));
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("Loading your model roster…");
   useEffect(() => {
@@ -45,13 +52,22 @@ export function ModelWorkshop() {
   useEffect(() => { void loadRecommendations(); }, []);
   const profile = useMemo(() => modelIdentity(category, selected, risk), [category, selected, risk]);
   const suggestedName = `${sport} ${profile.archetype}`;
-  const toggle = (factor: string) => setSelected((current) => current.includes(factor) ? current.length > 2 ? current.filter((item) => item !== factor) : current : [...current, factor]);
+  const toggle = (factor: string) => setSelected((current) => {
+    const next = current.includes(factor) ? current.length > 2 ? current.filter((item) => item !== factor) : current : [...current, factor];
+    setWeights((value) => ({ ...factorWeights(next, next.includes(strategy) ? strategy : next[0]), ...Object.fromEntries(next.filter((item) => value[item] !== undefined).map((item) => [item, value[item]])) }));
+    if (!next.includes(strategy)) setStrategy(next[0]);
+    return next;
+  });
+  const applyTemplate = (template: typeof templates[number]) => {
+    setCategory(template.category); setSelected(template.factors); setStrategy(template.strategy); setRisk(template.risk);
+    setWeights(factorWeights(template.factors, template.strategy)); setName(`${sport} ${template.name}`);
+  };
   const canContinue = step === 0 || (step === 1 && selected.length >= 2) || (step === 2 && (name.trim() || suggestedName));
   async function save() {
     setSaving(true);
     const response = await fetch("/api/models", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() || suggestedName, sport, category, description, factors: selected, strategy, riskProfile: risk, weights: factorWeights(selected, strategy) }),
+      body: JSON.stringify({ name: name.trim() || suggestedName, sport, category, description, factors: selected, strategy, riskProfile: risk, weights }),
     });
     const result = await response.json(); setSaving(false);
     if (!response.ok) return setStatus(result.error);
@@ -65,9 +81,9 @@ export function ModelWorkshop() {
       <header><div><span className="landing-kicker">GUIDED MODEL BUILDER</span><h2>{step === 0 ? "Choose your arena" : step === 1 ? "Teach it what matters" : "Meet your model"}</h2></div><Badge tone="accent">STEP {step + 1} OF 3</Badge></header>
       <div className="model-stepper">{[0, 1, 2].map((item) => <i className={item <= step ? "active" : ""} key={item}><b>{item < step ? <Check /> : item + 1}</b><span>{item === 0 ? "Focus" : item === 1 ? "Signals" : "Identity"}</span></i>)}</div>
 
-      {step === 0 ? <section className="model-build-step"><div className="model-question"><Target /><div><h3>What should this model specialize in?</h3><p>One model masters one type of decision. You can build as many specialists as you want.</p></div></div><span className="model-field-title">Choose a sport</span><div className="model-sport-grid">{sports.map((item) => <button className={sport === item ? "selected" : ""} onClick={() => setSport(item)} key={item}>{item}<Check /></button>)}</div><span className="model-field-title">Choose a pick category</span><div className="model-category-grid">{categories.map(([value, title, copy]) => <button className={category === value ? "selected" : ""} onClick={() => setCategory(value)} key={value}><span><strong>{title}</strong><small>{copy}</small></span><Check /></button>)}</div></section> : null}
+      {step === 0 ? <section className="model-build-step"><div className="model-question"><Target /><div><h3>What should this model specialize in?</h3><p>One model masters one type of decision. You can build as many specialists as you want.</p></div></div><span className="model-field-title">Start from a proven structure</span><div className="model-template-grid">{templates.map((template) => <button onClick={() => applyTemplate(template)} key={template.name}><Sparkles /><span><strong>{template.name}</strong><small>{categories.find(([value]) => value === template.category)?.[1]} · fully adjustable</small></span><ArrowRight /></button>)}</div><span className="model-field-title">Choose a sport</span><div className="model-sport-grid">{sports.map((item) => <button className={sport === item ? "selected" : ""} onClick={() => setSport(item)} key={item}>{item}<Check /></button>)}</div><span className="model-field-title">Choose a pick category</span><div className="model-category-grid">{categories.map(([value, title, copy]) => <button className={category === value ? "selected" : ""} onClick={() => setCategory(value)} key={value}><span><strong>{title}</strong><small>{copy}</small></span><Check /></button>)}</div></section> : null}
 
-      {step === 1 ? <section className="model-build-step"><div className="model-question"><BrainCircuit /><div><h3>Which signals should earn its trust?</h3><p>Pick at least two. STRATIQA creates sensible weights automatically.</p></div></div><div className="model-factor-grid">{factorOptions.map(([value, title, copy]) => <button className={selected.includes(value) ? "selected" : ""} onClick={() => toggle(value)} key={value}><span><strong>{title}</strong><small>{copy}</small></span><Check /></button>)}</div><div className="model-primary-signal"><span><Sparkles /> Most important signal</span><select value={strategy} onChange={(event) => setStrategy(event.target.value)}>{selected.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></div></section> : null}
+      {step === 1 ? <section className="model-build-step"><div className="model-question"><BrainCircuit /><div><h3>Which signals should earn its trust?</h3><p>Pick at least two, then tune how much influence each signal receives.</p></div></div><div className="model-factor-grid">{factorOptions.map(([value, title, copy]) => <button className={selected.includes(value) ? "selected" : ""} onClick={() => toggle(value)} key={value}><span><strong>{title}</strong><small>{copy}</small></span><Check /></button>)}</div><div className="model-primary-signal"><span><Sparkles /> Most important signal</span><select value={strategy} onChange={(event) => { const next = event.target.value; setStrategy(next); setWeights((current) => ({ ...current, [next]: Math.max(35, current[next] ?? 35) })); }}>{selected.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></div><div className="model-weight-editor"><header><span>Signal influence</span><small>Higher numbers give a signal more influence. You can revise this in a new version later.</small></header>{selected.map((factor) => <label key={factor}><span><strong>{label(factor)}</strong><b>{weights[factor] ?? 20}%</b></span><input type="range" min="5" max="60" step="5" value={weights[factor] ?? 20} onChange={(event) => setWeights((current) => ({ ...current, [factor]: Number(event.target.value) }))} /></label>)}</div></section> : null}
 
       {step === 2 ? <section className="model-build-step"><div className="model-identity-card"><div><Sparkles /><small>MODEL ARCHETYPE</small><strong>{profile.archetype}</strong><p>{sport} · {categories.find(([value]) => value === category)?.[1]}</p></div><Gauge /><span>{profile.discipline}<small>Discipline</small></span></div><span className="model-field-title">How often should it act?</span><div className="model-risk-grid">{riskOptions.map(([value, title, copy]) => <button className={risk === value ? "selected" : ""} onClick={() => setRisk(value)} key={value}><strong>{title}</strong><small>{copy}</small><Check /></button>)}</div><label className="model-name-field"><span><Pencil /> Give it a name <small>or keep our suggestion</small></span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={60} placeholder={suggestedName} /></label><details className="model-advanced"><summary>Optional model note</summary><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} placeholder="What should future-you remember about this model?" /></details><div className="model-build-summary"><span><b>{selected.length}</b> signals</span><span><b>{label(strategy)}</b> priority</span><span><b>1500</b> starting rating</span></div></section> : null}
 

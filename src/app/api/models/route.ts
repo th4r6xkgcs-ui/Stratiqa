@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth/session";
+import { modelValidationSummary } from "@/lib/models/validation.js";
 
 const categories = new Set(["player_prop", "moneyline", "spread", "total", "live"]);
 const factors = new Set(["market_value", "recent_form", "injuries", "weather", "matchup", "line_movement", "player_usage", "bullpen"]);
@@ -7,7 +8,7 @@ const config = () => ({ url: process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/
 const headers = (key: string) => ({ apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" });
 
 type ModelRow = { id: string; name: string; sport: string; category: string; description: string; factors: string[]; strategy: string; risk_profile: string; weights: Record<string, number>; version: number; status: string };
-type PickRow = { model_id: string; american_odds: number; result: "win" | "loss" | "push"; verification_status: string };
+type PickRow = { model_id: string; model_version: number | null; american_odds: number; result: "win" | "loss" | "push"; verification_status: string; stake_units: number | null; profit_units: number | null; graded_at: string | null };
 type RatingRow = { model_id: string; rating: number; graded_picks: number; wins: number; losses: number; roi_percent: number };
 
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
   const authHeaders = headers(key);
   const [modelsResponse, picksResponse, ratingsResponse] = await Promise.all([
     fetch(`${url}/rest/v1/analyst_models?user_id=eq.${user.id}&select=*&order=updated_at.desc`, { headers: authHeaders, cache: "no-store" }),
-    fetch(`${url}/rest/v1/graded_betting_activity?user_id=eq.${user.id}&model_id=not.is.null&verification_status=eq.verified&result=in.(win,loss,push)&select=model_id,american_odds,result`, { headers: authHeaders, cache: "no-store" }),
+    fetch(`${url}/rest/v1/graded_betting_activity?user_id=eq.${user.id}&model_id=not.is.null&verification_status=eq.verified&result=in.(win,loss,push)&select=model_id,model_version,american_odds,result,stake_units,profit_units,graded_at`, { headers: authHeaders, cache: "no-store" }),
     fetch(`${url}/rest/v1/model_ratings?user_id=eq.${user.id}&select=model_id,rating,graded_picks,wins,losses,roi_percent`, { headers: authHeaders, cache: "no-store" }),
   ]);
   if (!modelsResponse.ok) return Response.json({ error: "Models are temporarily unavailable." }, { status: 503 });
@@ -38,7 +39,8 @@ export async function GET() {
     const verified = stored?.graded_picks ?? samples.length;
     const storedWins = stored?.wins ?? wins;
     const storedLosses = stored?.losses ?? decisions.length - wins;
-    return { ...model, performance: { verified, wins: storedWins, losses: storedLosses, accuracy: storedWins + storedLosses ? Math.round(storedWins / (storedWins + storedLosses) * 100) : null, rating: Math.round(stored?.rating ?? fallbackRating), roi: stored?.roi_percent ?? null } };
+    const validation = modelValidationSummary(samples);
+    return { ...model, performance: { ...validation, verified, wins: storedWins, losses: storedLosses, accuracy: storedWins + storedLosses ? Math.round(storedWins / (storedWins + storedLosses) * 100) : null, rating: Math.round(stored?.rating ?? fallbackRating), roi: stored?.roi_percent ?? validation.roi } };
   }) });
 }
 
