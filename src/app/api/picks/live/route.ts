@@ -27,15 +27,22 @@ export async function GET() {
     }));
   }
 
-  return Response.json({
-    updatedAt: new Date().toISOString(),
-    refreshAfterSeconds: 90,
-    provider: apiKey ? "live" : "schedule",
-    unavailableSports,
-    picks: picks.map((pick) => {
+  const tracked = picks.map((pick) => {
       const score = pick.providerEventId ? scoreByEvent.get(pick.providerEventId) : undefined;
       return {
         pickId: pick.id,
+        eventId: pick.providerEventId,
+        sportKey: pick.providerSportKey,
+        eventName: pick.eventName,
+        selection: pick.selection,
+        marketKey: pick.marketKey,
+        outcomeName: pick.outcomeName,
+        linePoint: pick.linePoint,
+        participantName: pick.participantName,
+        confidence: pick.confidence,
+        americanOdds: pick.americanOdds,
+        eventCommenceAt: pick.eventCommenceAt,
+        result: pick.result,
         state: pickLifecycle(pick, score),
         completed: Boolean(score?.completed),
         homeTeam: score?.homeTeam ?? null,
@@ -43,6 +50,14 @@ export async function GET() {
         homeScore: score?.homeScore ?? null,
         awayScore: score?.awayScore ?? null,
       };
-    }),
+    });
+  const hasLive = tracked.some((pick) => pick.state === "live");
+  const hasUpcoming = tracked.some((pick) => pick.state === "upcoming");
+  return Response.json({
+    updatedAt: new Date().toISOString(),
+    refreshAfterSeconds: hasLive ? 45 : hasUpcoming ? 120 : 0,
+    provider: apiKey ? "live" : "schedule",
+    unavailableSports,
+    picks: tracked,
   });
 }

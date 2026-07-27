@@ -24,6 +24,7 @@ import { PickSlip } from "@/components/picks/pick-slip";
 const navigation = [
   { label: "Home", href: "/dashboard", icon: Gauge },
   { label: "Find Picks", href: "/matchups", icon: Target },
+  { label: "Game Center", href: "/games", icon: Activity, badge: "LIVE" },
   { label: "Player Props", href: "/props", icon: ChartNoAxesCombined, badge: "12" },
   { label: "My Performance", href: "/picks", icon: Trophy, badge: "RATING" },
 ];
@@ -134,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="content">{children}</main>
         <footer className="system-footer">
           <div><span>Automatic settlement</span><span>Verified ratings</span><span>Privacy controls active</span></div>
-          <div><strong>STRATIQA v16.7</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
+          <div><strong>STRATIQA v16.9</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Primary mobile navigation">
