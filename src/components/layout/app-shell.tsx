@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="content">{children}</main>
         <footer className="system-footer">
           <div><span>Automatic settlement</span><span>Verified ratings</span><span>Privacy controls active</span></div>
-          <div><strong>STRATIQA v16.5</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
+          <div><strong>STRATIQA v16.6</strong><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Support</Link></div>
         </footer>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Primary mobile navigation">

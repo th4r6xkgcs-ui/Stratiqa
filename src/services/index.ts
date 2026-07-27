@@ -2,13 +2,14 @@ import "server-only";
 import { MockInjuriesProvider } from "./injuries-provider";
 import { MockLineMovementProvider } from "./line-movement-provider";
 import { LiveOddsProvider, MockOddsProvider } from "./odds-provider";
+import { LiveBoardProvider, MockLiveBoardProvider, liveBoardSports, type LiveBoardSport } from "./live-board-provider";
 import { FallbackPropsProvider, MultiSportPropsProvider, MockPropsProvider } from "./props-provider";
 import { MockStandingsProvider } from "./standings-provider";
 import { MockStatsProvider } from "./stats-provider";
 import { MockWeatherProvider } from "./weather-provider";
 import { ResilientProvider } from "./runtime";
 import { getProviderEnvironment } from "./environment";
-import type { MatchupIntelligence, ProviderHealth } from "./types";
+import type { LiveBoardEvent, MatchupIntelligence, ProviderHealth, ProviderResult } from "./types";
 
 const environment = getProviderEnvironment();
 const oddsSource = environment.mode === "live"
@@ -30,6 +31,26 @@ export const providers = {
   props: new ResilientProvider("props", propsSource, { ttlMs: 120_000, staleMs: 900_000, retries: 0, maxRequestsPerWindow: 5, windowMs: 60_000, failureThreshold: 2, cooldownMs: 180_000 }),
   lineMovement: new ResilientProvider("lineMovement", new MockLineMovementProvider()),
 };
+const liveBoards = new Map<LiveBoardSport, ResilientProvider<LiveBoardEvent[]>>();
+
+export function isLiveBoardSport(value: string): value is LiveBoardSport {
+  return liveBoardSports.includes(value as LiveBoardSport);
+}
+
+export async function getLiveBoard(sport: LiveBoardSport): Promise<ProviderResult<LiveBoardEvent[]>> {
+  let provider = liveBoards.get(sport);
+  if (!provider) {
+    const source = environment.mode === "live"
+      ? new LiveBoardProvider(process.env.STRATIQA_ODDS_API_KEY!, sport)
+      : new MockLiveBoardProvider(sport);
+    provider = new ResilientProvider(`liveBoard:${sport}`, source, {
+      ttlMs: 300_000, staleMs: 1_800_000, retries: 0, maxRequestsPerWindow: 2,
+      windowMs: 300_000, failureThreshold: 2, cooldownMs: 300_000,
+    });
+    liveBoards.set(sport, provider);
+  }
+  return provider.getData();
+}
 
 export async function getProviderHealth(): Promise<{ environment: ReturnType<typeof getProviderEnvironment>; providers: ProviderHealth[] }> {
   await Promise.allSettled(Object.values(providers).map((provider) => provider.getData()));
@@ -50,13 +71,35 @@ export async function getPropsBoard() {
 }
 
 export async function getMatchupIntelligence(slug: string): Promise<MatchupIntelligence | null> {
-  const base = matchupBase[slug as keyof typeof matchupBase];
-  if (!base) return null;
+  const staticBase = matchupBase[slug as keyof typeof matchupBase];
+  let boardResult: ProviderResult<LiveBoardEvent[]> | null = null;
+  let boardEvent: LiveBoardEvent | undefined;
+  if (!staticBase) {
+    const [sport] = slug.split("--");
+    if (!isLiveBoardSport(sport)) return null;
+    boardResult = await getLiveBoard(sport);
+    boardEvent = boardResult.data.find((event) => event.slug === slug);
+    if (!boardEvent) return null;
+  }
+  const primaryQuote = boardEvent?.quotes.find((quote) => quote.marketKey === "h2h") ?? boardEvent?.quotes[0];
+  const awayAbbr = boardEvent ? boardEvent.awayTeam.split(" ").map((word) => word[0]).join("").slice(0, 4).toUpperCase() : "";
+  const homeAbbr = boardEvent ? boardEvent.homeTeam.split(" ").map((word) => word[0]).join("").slice(0, 4).toUpperCase() : "";
+  const base = staticBase ?? {
+    away: boardEvent!.awayTeam, awayAbbr, home: boardEvent!.homeTeam, homeAbbr,
+    startTime: new Date(boardEvent!.commenceTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+    pick: primaryQuote!.line,
+    aiSummary: "STRATIQA is monitoring this live market across available books. Review the current price, market shape, and risk profile before locking your decision.",
+    winProbability: 55, modelEdge: 4.5, expectedValue: 5.2, confidence: 68, valueGrade: "B",
+  };
   const [odds, weather, injuries, stats, market] = await Promise.all([
-    providers.odds.getData(), providers.weather.getData(), providers.injuries.getData(),
+    boardResult ? Promise.resolve({ data: [], provider: boardResult.provider, mode: boardResult.mode, updatedAt: boardResult.updatedAt }) : providers.odds.getData(),
+    providers.weather.getData(), providers.injuries.getData(),
     providers.stats.getData(), providers.lineMovement.getData(),
   ]);
-  const quote = odds.data.find((item) => item.matchupId === slug);
+  const quote = boardEvent ? {
+    matchupId: slug, bestBook: primaryQuote!.book, quotes: boardEvent.quotes,
+    providerEventId: boardEvent.id, providerSportKey: boardEvent.sportKey, commenceTime: boardEvent.commenceTime,
+  } : odds.data.find((item) => item.matchupId === slug);
   const weatherRow = weather.data.find((item) => item.matchupId === slug);
   const injuryRows = injuries.data.filter((item) => item.matchupId === slug);
   const statsRow = stats.data.find((item) => item.matchupId === slug);
@@ -74,7 +117,7 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
     alternateLines: resolvedQuote.quotes, market: resolvedMarket,
     providerEventId: quote?.providerEventId ?? null, providerSportKey: quote?.providerSportKey ?? null,
     providerCommenceTime: quote?.commenceTime ?? null,
-    providerMode: odds.mode,
+    providerMode: boardResult?.mode ?? odds.mode,
     reasoning: [
       { title: "Pitching matchup", summary: `${resolvedStats.starterEdge > 10 ? "Material" : "Moderate"} starter advantage`, detail: `Park-adjusted starter projections create a ${resolvedStats.starterEdge.toFixed(1)}% edge after workload and platoon adjustments.`, score: resolvedStats.starterEdge },
       { title: "Bullpen leverage", summary: "Late-inning depth favors the model side", detail: `Rest, leverage usage, and reliever quality combine for a ${resolvedStats.bullpenEdge.toFixed(1)}% bullpen advantage.`, score: resolvedStats.bullpenEdge },
