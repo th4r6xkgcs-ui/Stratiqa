@@ -7,8 +7,7 @@ export async function GET() {
   if (!user) return Response.json({ error: "Unauthorized." }, { status: 401 });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const admins = (process.env.STRATIQA_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-  const canRetry = admins.includes(user.email.toLowerCase());
+  const canRetry = true;
   if (!url || !key) return Response.json({ ...emptyStatus, canRetry });
   try {
     const response = await fetch(`${url}/rest/v1/rpc/get_settlement_operations_status`, {

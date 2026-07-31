@@ -7,6 +7,20 @@ import { configuredPlayerStatLeagues, getPlayerStatsProvider } from "@/services/
 import { LiveResultsProvider } from "@/services/results-provider";
 import { settlementOperations, type SettlementFailure } from "@/services/settlement-operations";
 
+async function canRequestManualRefresh(userId: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return false;
+  const headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+  const pending = await fetch(`${url}/rest/v1/graded_betting_activity?user_id=eq.${userId}&source=eq.provider&verification_status=eq.pending&result=eq.pending&event_commence_at=lt.${encodeURIComponent(new Date().toISOString())}&select=id&limit=1`, { headers, cache: "no-store" });
+  if (!pending.ok || !(await pending.json() as unknown[]).length) return false;
+  const existing = await fetch(`${url}/rest/v1/manual_settlement_refreshes?user_id=eq.${userId}&select=requested_at&limit=1`, { headers, cache: "no-store" });
+  const [refresh] = existing.ok ? await existing.json() as Array<{ requested_at: string }> : [];
+  if (refresh && Date.now() - new Date(refresh.requested_at).getTime() < 5 * 60_000) return false;
+  const saved = await fetch(`${url}/rest/v1/manual_settlement_refreshes?on_conflict=user_id`, { method: "POST", headers: { ...headers, Prefer: "resolution=merge-duplicates,return=minimal" }, cache: "no-store", body: JSON.stringify({ user_id: userId, requested_at: new Date().toISOString() }) });
+  return saved.ok;
+}
+
 async function settlePicks(request: Request) {
   const runId = crypto.randomUUID();
   const startedAt = new Date();
@@ -14,7 +28,7 @@ async function settlePicks(request: Request) {
   const cronAuthorized = Boolean(secret && request.headers.get("authorization") === `Bearer ${secret}`);
   const user = request.method === "POST" && !cronAuthorized ? await getSessionUser() : null;
   const adminEmails = (process.env.STRATIQA_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-  const manualAuthorized = Boolean(user && adminEmails.includes(user.email.toLowerCase()));
+  const manualAuthorized = Boolean(user && (adminEmails.includes(user.email.toLowerCase()) || await canRequestManualRefresh(user.id)));
   if (!cronAuthorized && !manualAuthorized) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
   }
