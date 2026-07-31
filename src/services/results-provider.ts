@@ -66,12 +66,14 @@ export class LiveResultsProvider {
     if (!league || !eventCommenceAt) return null;
     const date = new Date(eventCommenceAt);
     if (Number.isNaN(date.getTime())) return null;
-    const dateKey = `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, "0")}${String(date.getUTCDate()).padStart(2, "0")}`;
-    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${league}/scoreboard?dates=${dateKey}&limit=500`, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
-    if (!response.ok) return null;
     const target = normalize(eventName);
-    const data = await response.json() as { events?: EspnEvent[] };
-    for (const event of data.events ?? []) {
+    const candidates = [date, new Date(date.getTime() - 86_400_000)];
+    for (const candidate of candidates) {
+      const dateKey = `${candidate.getUTCFullYear()}${String(candidate.getUTCMonth() + 1).padStart(2, "0")}${String(candidate.getUTCDate()).padStart(2, "0")}`;
+      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${league}/scoreboard?dates=${dateKey}&limit=500`, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
+      if (!response.ok) continue;
+      const data = await response.json() as { events?: EspnEvent[] };
+      for (const event of data.events ?? []) {
       const competitors = event.competitions?.[0]?.competitors ?? [];
       const home = competitors.find((item) => item.homeAway === "home");
       const away = competitors.find((item) => item.homeAway === "away");
@@ -80,7 +82,8 @@ export class LiveResultsProvider {
       if (!homeTeam || !awayTeam || !target.includes(normalize(homeTeam)) || !target.includes(normalize(awayTeam))) continue;
       const homeScore = Number(home?.score); const awayScore = Number(away?.score);
       if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) continue;
-      return { eventId: `espn:${dateKey}:${normalize(homeTeam)}:${normalize(awayTeam)}`, sportKey, completed: true, homeTeam, awayTeam, homeScore, awayScore };
+        return { eventId: `espn:${dateKey}:${normalize(homeTeam)}:${normalize(awayTeam)}`, sportKey, completed: true, homeTeam, awayTeam, homeScore, awayScore };
+      }
     }
     return null;
   }

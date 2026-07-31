@@ -4,7 +4,7 @@ import { settlementRunStatus } from "@/lib/settlement/operations.js";
 import { getSessionUser } from "@/lib/auth/session";
 import { picksRepository } from "@/repositories/picks";
 import { configuredPlayerStatLeagues, getPlayerStatsProvider } from "@/services/player-stats-provider";
-import { LiveResultsProvider } from "@/services/results-provider";
+import { LiveResultsProvider, type CompletedScore } from "@/services/results-provider";
 import { settlementOperations, type SettlementFailure } from "@/services/settlement-operations";
 
 async function canRequestManualRefresh(userId: string) {
@@ -77,7 +77,12 @@ async function settlePicks(request: Request) {
 
   for (const [sportKey, picks] of bySport) {
     try {
-      const scores = await provider.getCompleted(sportKey, [...new Set(picks.map((pick) => pick.providerEventId!))]);
+      let scores: CompletedScore[] = [];
+      try {
+        scores = await provider.getCompleted(sportKey, [...new Set(picks.map((pick) => pick.providerEventId!))]);
+      } catch (error) {
+        failures.push({ scope: `game-results:${sportKey}`, reason: error instanceof Error ? error.message : "Primary score provider unavailable; trying historical fallback." });
+      }
       const scoreById = new Map(scores.map((score) => [score.eventId, score]));
       for (const pick of picks) {
         let score = scoreById.get(pick.providerEventId!);
