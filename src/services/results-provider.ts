@@ -22,6 +22,13 @@ type ExternalScore = {
   scores: Array<{ name: string; score: string }> | null;
 };
 
+const espnLeagues: Record<string, string> = {
+  baseball_mlb: "baseball/mlb", basketball_nba: "basketball/nba", basketball_wnba: "basketball/wnba",
+  americanfootball_nfl: "football/nfl", icehockey_nhl: "hockey/nhl",
+};
+const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+type EspnEvent = { competitions?: Array<{ competitors?: Array<{ homeAway?: "home" | "away"; team?: { displayName?: string }; score?: string }> }> };
+
 export class LiveResultsProvider {
   constructor(private readonly apiKey: string) {}
 
@@ -52,5 +59,29 @@ export class LiveResultsProvider {
 
   async getCompleted(sportKey: string, eventIds: string[] = []): Promise<CompletedScore[]> {
     return this.getScores(sportKey, eventIds);
+  }
+
+  async getHistoricalByMatchup(sportKey: string, eventCommenceAt: string | null, eventName: string): Promise<CompletedScore | null> {
+    const league = espnLeagues[sportKey];
+    if (!league || !eventCommenceAt) return null;
+    const date = new Date(eventCommenceAt);
+    if (Number.isNaN(date.getTime())) return null;
+    const dateKey = `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, "0")}${String(date.getUTCDate()).padStart(2, "0")}`;
+    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${league}/scoreboard?dates=${dateKey}&limit=500`, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
+    if (!response.ok) return null;
+    const target = normalize(eventName);
+    const data = await response.json() as { events?: EspnEvent[] };
+    for (const event of data.events ?? []) {
+      const competitors = event.competitions?.[0]?.competitors ?? [];
+      const home = competitors.find((item) => item.homeAway === "home");
+      const away = competitors.find((item) => item.homeAway === "away");
+      const homeTeam = home?.team?.displayName ?? "";
+      const awayTeam = away?.team?.displayName ?? "";
+      if (!homeTeam || !awayTeam || !target.includes(normalize(homeTeam)) || !target.includes(normalize(awayTeam))) continue;
+      const homeScore = Number(home?.score); const awayScore = Number(away?.score);
+      if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) continue;
+      return { eventId: `espn:${dateKey}:${normalize(homeTeam)}:${normalize(awayTeam)}`, sportKey, completed: true, homeTeam, awayTeam, homeScore, awayScore };
+    }
+    return null;
   }
 }

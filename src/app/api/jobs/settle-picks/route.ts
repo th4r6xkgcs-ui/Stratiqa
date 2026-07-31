@@ -80,13 +80,19 @@ async function settlePicks(request: Request) {
       const scores = await provider.getCompleted(sportKey, [...new Set(picks.map((pick) => pick.providerEventId!))]);
       const scoreById = new Map(scores.map((score) => [score.eventId, score]));
       for (const pick of picks) {
-        const result = settleGameMarket(pick, scoreById.get(pick.providerEventId!));
+        let score = scoreById.get(pick.providerEventId!);
+        let fallback = false;
+        if (!score && pick.eventCommenceAt && Date.now() - new Date(pick.eventCommenceAt).getTime() > 3 * 86_400_000) {
+          score = (await provider.getHistoricalByMatchup(pick.providerSportKey!, pick.eventCommenceAt, pick.eventName)) ?? undefined;
+          fallback = Boolean(score);
+        }
+        const result = settleGameMarket(pick, score);
         if (result === "pending") {
           deferredGames += 1;
           continue;
         }
         const profit = profitForResult(pick.americanOdds, pick.stakeUnits, result);
-        if (await picksRepository.settleProvider(pick.id, result, profit)) settled += 1;
+        if (await picksRepository.settleProvider(pick.id, result, profit, fallback ? { provider: "espn-historical-score", reason: "Historical final score confirmed after the primary provider window closed." } : undefined)) settled += 1;
       }
     } catch (error) {
       deferredGames += picks.length;
