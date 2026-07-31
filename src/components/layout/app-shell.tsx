@@ -17,6 +17,7 @@ import {
   Target,
   Trophy,
   UserRound,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { AddPickLauncher } from "@/components/picks/add-pick-launcher";
@@ -38,6 +39,7 @@ const intelligence = [
 const community = [
   { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
   { label: "My Rivals", href: "/rivals", icon: Swords },
+  { label: "Model Clubs", href: "/clubs", icon: Users },
 ];
 
 const tools = [
