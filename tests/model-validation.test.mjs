@@ -13,7 +13,7 @@ test("summarizes only settled verified model outcomes", () => {
   assert.equal(result.roi, 0);
 });
 
-test("requires five verified recommendations before promotion", () => {
-  assert.equal(promotionReadiness({ verified: 4 }).ready, false);
-  assert.equal(promotionReadiness({ verified: 5 }).ready, true);
+test("requires ten verified recommendations before promotion", () => {
+  assert.equal(promotionReadiness({ verified: 9 }).ready, false);
+  assert.equal(promotionReadiness({ verified: 10 }).ready, true);
 });

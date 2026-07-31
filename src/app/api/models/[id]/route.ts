@@ -45,9 +45,9 @@ export async function PATCH(request: Request, context: Context) {
   if (!model) return Response.json({ error: "Model not found." }, { status: 404 });
   let update: Record<string, unknown>;
   if (body?.action === "promote") {
-    const picksResponse = await fetch(`${url}/rest/v1/graded_betting_activity?model_id=eq.${id}&user_id=eq.${user.id}&verification_status=eq.verified&select=id&limit=5`, { headers: headers(key), cache: "no-store" });
+    const picksResponse = await fetch(`${url}/rest/v1/graded_betting_activity?model_id=eq.${id}&user_id=eq.${user.id}&verification_status=eq.verified&select=id&limit=10`, { headers: headers(key), cache: "no-store" });
     const samples = picksResponse.ok ? (await picksResponse.json() as unknown[]).length : 0;
-    if (samples < 5) return Response.json({ error: `${5 - samples} more verified model pick${5 - samples === 1 ? "" : "s"} needed before promotion.` }, { status: 409 });
+    if (samples < 10) return Response.json({ error: `${10 - samples} more verified model pick${10 - samples === 1 ? "" : "s"} needed before promotion.` }, { status: 409 });
     update = { status: "live" };
   } else if (body?.action === "retire") update = { status: "retired" };
   else if (body?.action === "restore") update = { status: "testing" };

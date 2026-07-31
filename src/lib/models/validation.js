@@ -22,7 +22,7 @@ export function modelValidationSummary(picks = []) {
 export function promotionReadiness(performance = {}) {
   const verified = Number(performance.verified ?? 0);
   const checks = [
-    { id: "sample", label: "5 verified recommendations", complete: verified >= 5, remaining: Math.max(0, 5 - verified) },
+    { id: "sample", label: "10 verified recommendations", complete: verified >= 10, remaining: Math.max(0, 10 - verified) },
     { id: "identity", label: "Specialist identity configured", complete: true, remaining: 0 },
     { id: "history", label: "Immutable version tracking", complete: true, remaining: 0 },
   ];
