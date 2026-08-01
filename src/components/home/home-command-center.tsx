@@ -14,7 +14,7 @@ import type { ManagedModel } from "@/components/models/model-command-center";
 type Profile = { public_alias?: string; public_slug?: string; leaderboard_opt_in?: boolean };
 type Feed = { id: string; tone: "win" | "loss" | "info"; title: string; detail: string; href: string };
 const labels: Record<string, string> = { player_prop: "Player Props", moneyline: "Moneylines", spread: "Spreads", total: "Totals", parlay: "Parlays", live: "Live Markets" };
-const widgetLabels: Record<DashboardWidgetId, string> = { rating: "Rating", focus: "Next move", best: "Strongest", stats: "Quick stats", activity: "Recent picks", updates: "Updates", loop: "Competitive loop" };
+const widgetLabels: Record<DashboardWidgetId, string> = { rating: "Rating", focus: "Next move", brief: "Daily briefing", best: "Strongest", stats: "Quick stats", activity: "Recent picks", updates: "Updates", loop: "Competitive loop" };
 
 export function HomeCommandCenter() {
   const [picks, setPicks] = useState<TrackedPick[]>([]);
@@ -152,6 +152,11 @@ export function HomeCommandCenter() {
     return items.filter((item) => !dismissed.includes(item.id)).slice(0, 5);
   }, [dismissed, models, picks, profile.leaderboard_opt_in, ratingImpacts, settlementAudit, summary.strongest]);
   const bestModelMilestone = modelNextMilestone(summary.bestModel);
+  const dailyPlan = [
+    summary.pending.length ? { icon: Clock3, title: "Follow what you already locked", detail: `${summary.pending.length} pick${summary.pending.length === 1 ? " is" : "s are"} awaiting an official result.`, href: "/games", action: "Open Game Center" } : { icon: Search, title: "Research the current board", detail: "Compare the price and reasoning before you decide anything.", href: "/matchups", action: "Browse pregame markets" },
+    models.length ? { icon: BrainCircuit, title: summary.bestModel ? `Check ${summary.bestModel.name}` : "Open your model desk", detail: summary.bestModel ? `${bestModelMilestone.title}${bestModelMilestone.remaining ? ` · ${bestModelMilestone.remaining} remaining` : ""}` : "Your models can pass weak markets instead of forcing a pick.", href: "/lab", action: "Open Model Lab" } : { icon: BrainCircuit, title: "Build one focused model", detail: "Start with one sport and one category so the results teach you something useful.", href: "/lab", action: "Build a specialist" },
+    summary.settled.length ? { icon: Trophy, title: "Review your verified progress", detail: `${summary.settled.length} settled STRATIQA pick${summary.settled.length === 1 ? "" : "s"} now shape your rating.`, href: "/picks", action: "See performance" } : { icon: ShieldCheck, title: "Protect the integrity of your record", detail: "Only pregame locks and official results can move your STRATIQA rating.", href: "/picks", action: "How tracking works" },
+  ];
 
   if (loading) return <div className="dashboard-page home-command"><div className="home-loading">{[1, 2, 3, 4, 5].map((item) => <i key={item} />)}</div></div>;
 
@@ -181,6 +186,14 @@ export function HomeCommandCenter() {
       <Card className="home-focus-card">
         <span className="landing-kicker">YOUR NEXT MOVE</span>
         {summary.pending.length ? <><Clock3 /><h2>{summary.pending.length} pick{summary.pending.length === 1 ? "" : "s"} in play</h2><p>Watch the games and follow picks you locked before they started. No live betting.</p><Link href="/picks">Track my picks <ArrowRight /></Link></> : <><Target /><h2>Build today&apos;s card</h2><p>Choose a pregame market, review the reasoning, and lock your decision before game time.</p><Link href="/matchups">Explore today&apos;s board <ArrowRight /></Link></>}
+      </Card>
+      </div> : null}
+
+      {!dashboardLayout.hidden.includes("brief") ? <div {...widgetProps("brief")}>{controls("brief")}
+      <Card className="home-daily-brief">
+        <header><span><Sparkles /> TODAY&apos;S GAME PLAN</span><Badge tone="accent">3 STEPS</Badge></header>
+        <div>{dailyPlan.map((item, index) => { const Icon = item.icon; return <article key={item.title}><i>{index + 1}</i><Icon /><span><strong>{item.title}</strong><small>{item.detail}</small></span><Link href={item.href}>{item.action} <ArrowRight /></Link></article>; })}</div>
+        <footer><ShieldCheck /> Research first. Lock before start. Let official results build the record.</footer>
       </Card>
       </div> : null}
 

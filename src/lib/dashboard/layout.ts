@@ -1,4 +1,4 @@
-export const dashboardWidgetIds = ["rating", "focus", "best", "stats", "activity", "updates", "loop"] as const;
+export const dashboardWidgetIds = ["rating", "focus", "brief", "best", "stats", "activity", "updates", "loop"] as const;
 export type DashboardWidgetId = typeof dashboardWidgetIds[number];
 export type DashboardWidgetSize = "compact" | "standard" | "wide";
 export type DashboardLayout = {
@@ -15,6 +15,7 @@ export const defaultDashboardLayout: DashboardLayout = {
   sizes: {
     rating: "compact",
     focus: "compact",
+    brief: "wide",
     best: "compact",
     stats: "wide",
     activity: "standard",
@@ -25,9 +26,9 @@ export const defaultDashboardLayout: DashboardLayout = {
 
 export const dashboardPresets: Record<"balanced" | "competitive" | "models" | "beginner", DashboardLayout> = {
   balanced: defaultDashboardLayout,
-  competitive: { ...defaultDashboardLayout, order: ["rating", "stats", "best", "activity", "updates", "focus", "loop"], hidden: [], sizes: { ...defaultDashboardLayout.sizes, rating: "standard", stats: "standard" } },
-  models: { ...defaultDashboardLayout, order: ["best", "rating", "stats", "activity", "focus", "updates", "loop"], hidden: ["loop"], sizes: { ...defaultDashboardLayout.sizes, best: "standard", rating: "standard" } },
-  beginner: { ...defaultDashboardLayout, order: ["focus", "loop", "rating", "best", "stats", "activity", "updates"], hidden: ["updates"], sizes: { ...defaultDashboardLayout.sizes, focus: "standard", loop: "wide" } },
+  competitive: { ...defaultDashboardLayout, order: ["rating", "brief", "stats", "best", "activity", "updates", "focus", "loop"], hidden: [], sizes: { ...defaultDashboardLayout.sizes, rating: "standard", stats: "standard" } },
+  models: { ...defaultDashboardLayout, order: ["brief", "best", "rating", "stats", "activity", "focus", "updates", "loop"], hidden: ["loop"], sizes: { ...defaultDashboardLayout.sizes, best: "standard", rating: "standard" } },
+  beginner: { ...defaultDashboardLayout, order: ["brief", "focus", "loop", "rating", "best", "stats", "activity", "updates"], hidden: ["updates"], sizes: { ...defaultDashboardLayout.sizes, focus: "standard", loop: "wide" } },
 };
 
 export function normalizeDashboardLayout(value: unknown): DashboardLayout {
