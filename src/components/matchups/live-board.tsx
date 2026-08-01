@@ -14,6 +14,7 @@ const leagues = [
 ] as const;
 const marketLabels: Record<string, string> = { h2h: "Moneyline", spreads: "Spread", totals: "Total" };
 const formatPrice = (price: number) => `${price > 0 ? "+" : ""}${price}`;
+const impliedProbability = (price: number) => price > 0 ? 100 / (price + 100) * 100 : Math.abs(price) / (Math.abs(price) + 100) * 100;
 const shortTeam = (name: string) => name.split(" ").map((word) => word[0]).join("").slice(0, 4).toUpperCase();
 const dateKey = (value: string) => new Date(value).toLocaleDateString("en-CA");
 
@@ -23,8 +24,8 @@ function Market({ event, marketKey, quotes }: { event: LiveBoardEvent; marketKey
     <div>{quotes.map((quote) => <button key={`${quote.outcomeName}-${quote.point}`} onClick={() => addToSlip({
       id: `${event.slug}:${marketKey}:${quote.outcomeName}:${quote.point ?? ""}`, slug: event.slug,
       selection: quote.line, eventName: `${event.awayTeam} at ${event.homeTeam}`, book: quote.book,
-      price: quote.price, confidence: 68, expectedValue: 5.2, live: true, origin: "personal",
-    })}><small>{quote.line}</small><strong>{formatPrice(quote.price)}</strong><Plus /></button>)}</div>
+      price: quote.price, confidence: Math.round(impliedProbability(quote.price)), expectedValue: 0, live: true, origin: "personal",
+    })}><small>{quote.line}</small><strong>{formatPrice(quote.price)}</strong><em>{impliedProbability(quote.price).toFixed(1)}% market chance</em><Plus /></button>)}</div>
   </div>;
 }
 
@@ -65,7 +66,7 @@ export function LiveBoard() {
   return <div className="page live-board-page">
     <header className="page-header live-board-hero">
       <div><Badge tone="accent"><Sparkles /> PREGAME PICK BOARD</Badge><h1>Choose before it starts. Track it live.</h1><p>Lock your decision before game time. Once play begins, this becomes a watch-only experience.</p></div>
-      <Badge tone={mode === "live" ? "success" : "warning"}>{mode === "live" ? "PREGAME LINES" : mode === "mock" ? "DEMO MODE" : "FEED DELAYED"}</Badge>
+      <Badge tone={mode === "live" ? "success" : "warning"}>{mode === "live" ? "MARKET BOARD" : mode === "mock" ? "DEMO MODE" : "FEED DELAYED"}</Badge>
     </header>
 
     <section className="live-board-controls">
@@ -86,10 +87,11 @@ export function LiveBoard() {
             const quotes = event.quotes.filter((quote) => quote.marketKey === market);
             return quotes.length ? <Market event={event} marketKey={market} quotes={quotes} key={market} /> : null;
           })}</div>
-          <footer><span><ShieldCheck /> Pregame picks only · live viewing after lock</span><Link href={`/matchups/${event.slug}`}>View intelligence <ArrowRight /></Link></footer>
+          <footer><span><ShieldCheck /> Pregame picks only · market chance shown, model edge on the intelligence page</span><Link href={`/matchups/${event.slug}`}>View intelligence <ArrowRight /></Link></footer>
         </Card>;
       })}</section> :
       <Card className="board-empty"><CalendarDays /><h2>No open markets here right now</h2><p>This league may be off-season, between slates, or temporarily unavailable. Try another league or date—nothing is broken.</p><button onClick={() => { setSelectedDate("all"); setQuery(""); }}>Clear filters</button></Card>}
+    <details className="board-price-guide"><summary><ShieldCheck /> How to read this board <ArrowRight /></summary><p><strong>Market chance</strong> is the implied probability from the displayed pregame price. It is not STRATIQA confidence or expected value. Add a market to your slip to compare it with your own research or a qualifying model recommendation before you lock it.</p></details>
     <p className="board-freshness"><ShieldCheck /> Lines are cached for five minutes to protect the free data allowance. {updatedAt ? `Last checked ${new Date(updatedAt).toLocaleTimeString()}.` : ""}</p>
   </div>;
 }

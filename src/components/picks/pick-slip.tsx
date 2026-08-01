@@ -32,10 +32,11 @@ export function PickSlip() {
     const confidence = Math.round(rawConfidence * (correlated ? .92 : 1));
     const ev = legs.length ? legs.reduce((sum, leg) => sum + leg.expectedValue, 0) / legs.length : 0;
     const risk = legs.length >= 4 ? "High" : confidence >= 75 ? "Controlled" : "Balanced";
-    const grade = confidence >= 82 && ev >= 8 ? "A" : confidence >= 72 && ev >= 5 ? "B+" : confidence >= 62 ? "B" : "C";
+    const hasModelAnalysis = legs.some((leg) => Boolean(leg.modelId));
+    const grade = !hasModelAnalysis ? "MARKET" : confidence >= 82 && ev >= 8 ? "A" : confidence >= 72 && ev >= 5 ? "B+" : confidence >= 62 ? "B" : "C";
     const winGain = legs.reduce((sum, leg) => sum + Math.round(28 * (1 - (leg.price > 0 ? 100 / (leg.price + 100) : Math.abs(leg.price) / (Math.abs(leg.price) + 100)))), 0);
     const loss = legs.reduce((sum, leg) => sum + Math.round(28 * (leg.price > 0 ? 100 / (leg.price + 100) : Math.abs(leg.price) / (Math.abs(leg.price) + 100))), 0);
-    return { confidence, ev, risk, grade, winGain, loss, correlated, autoUnits: recommendedUnits(confidence, correlated) };
+    return { confidence, ev, risk, grade, hasModelAnalysis, winGain, loss, correlated, autoUnits: recommendedUnits(confidence, correlated) };
   }, [legs]);
   async function lock() {
     if (legs.some((leg) => !leg.live || (leg.kind === "prop" ? !leg.propId : !leg.slug))) return setStatus("Only provider-verified pregame lines can be locked for ratings.");
@@ -60,7 +61,7 @@ export function PickSlip() {
       <header><span><ReceiptText /> STRATIQA SLIP <b>{legs.length}</b></span><button onClick={() => setOpen(false)}><X /></button></header>
       {legs.length ? <>
         <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>STRATIQA best line<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>MY PICK</em>{leg.modelName ? <em>MODEL ANALYSIS · {leg.modelName}</em> : null}{!leg.live ? <em>DEMO · NOT TRACKABLE</em> : <em className="verified"><ShieldCheck /> PREGAME LINE LOCK</em>}</div></article>)}</div>
-        <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>Overall confidence<b>{analysis.confidence}%</b></span><span>Average EV<b>+{analysis.ev.toFixed(1)}%</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
+        <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>{analysis.hasModelAnalysis ? "Overall model fit" : "Market-implied chance"}<b>{analysis.confidence}%</b></span><span>{analysis.hasModelAnalysis ? "Average model EV" : "Model EV"}<b>{analysis.hasModelAnalysis ? `+${analysis.ev.toFixed(1)}%` : "N/A"}</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
         <p className="slip-origin-note"><ShieldCheck /> Every selection is your pick. Locking preserves the line for ratings; optional sportsbook proof confirms real-world financial stats.</p>
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
