@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 const listeners = new Map<string, Set<() => void>>();
 const serverSnapshots = new Map<string, string>();
@@ -29,12 +29,17 @@ function parseOrFallback<T>(serialized: string, fallback: string): T {
 export function usePersistentState<T>(key: string, initialValue: T) {
   const fallback = JSON.stringify(initialValue);
   if (!serverSnapshots.has(key)) serverSnapshots.set(key, fallback);
+  const subscribeToKey = useCallback((listener: () => void) => subscribe(key, listener), [key]);
+  const getSnapshot = useCallback(() => window.localStorage.getItem(key) ?? fallback, [fallback, key]);
+  const getServerSnapshot = useCallback(() => serverSnapshots.get(key) ?? fallback, [fallback, key]);
   const serialized = useSyncExternalStore(
-    (listener) => subscribe(key, listener),
-    () => window.localStorage.getItem(key) ?? fallback,
-    () => serverSnapshots.get(key) ?? fallback,
+    subscribeToKey,
+    getSnapshot,
+    getServerSnapshot,
   );
-  const value = parseOrFallback<T>(serialized, fallback);
+  // Keep reference identity stable until storage actually changes. Consumers use this
+  // value in effects, so reparsing every render would continuously restart them.
+  const value = useMemo(() => parseOrFallback<T>(serialized, fallback), [fallback, serialized]);
   const setValue = useCallback((next: T | ((current: T) => T)) => {
     const currentSerialized = window.localStorage.getItem(key) ?? fallback;
     const current = parseOrFallback<T>(currentSerialized, fallback);
