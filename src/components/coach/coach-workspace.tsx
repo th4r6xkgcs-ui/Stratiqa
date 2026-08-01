@@ -9,16 +9,23 @@ import { usePersistentState } from "@/hooks/use-persistent-state";
 import { ProviderHealthPanel } from "@/components/intelligence/provider-health-panel";
 
 const prompts = ["Explain today's top play", "Find another edge", "Safest bet today", "Biggest upset chance", "Best value play", "Show best props"];
-type Turn = { id: number; question: string; reply: CoachReply };
+type Turn = { id: string; question: string; reply: CoachReply };
+
+function isCoachTurn(value: unknown): value is Turn {
+  if (!value || typeof value !== "object") return false;
+  const turn = value as Partial<Turn>;
+  return typeof turn.id === "string" && typeof turn.question === "string" && Boolean(turn.reply) && typeof turn.reply?.answer === "string" && Boolean(turn.reply.snapshot) && typeof turn.reply.snapshot.mode === "string";
+}
 
 export function CoachWorkspace() {
   const [message, setMessage] = useState("");
-  const [turns, setTurns] = usePersistentState<Turn[]>("stratiqa.coach.history.v1", []);
+  const [storedTurns, setTurns] = usePersistentState<Turn[]>("stratiqa.coach.history.v1", []);
   const [streamed, setStreamed] = useState("");
   const [pending, setPending] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const turns = Array.isArray(storedTurns) ? storedTurns.filter(isCoachTurn) : [];
   const latest = turns.at(-1);
 
   useEffect(() => {
@@ -39,10 +46,11 @@ export function CoachWorkspace() {
     setError("");
     try {
       const response = await fetch("/api/coach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: question, focus: "slate" }) });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ error: "The Coach returned an unreadable response. Please try again." }));
       if (!response.ok) throw new Error(data.error ?? "The coach could not answer.");
+      if (!isCoachTurn({ id: `${data.snapshot?.generatedAt ?? ""}:${question}`, question, reply: data })) throw new Error("The Coach response was incomplete. Please try again.");
       setStreamed("");
-      setTurns((current) => [...current, { id: Date.now(), question, reply: data }]);
+      setTurns((current) => [...(Array.isArray(current) ? current.filter(isCoachTurn) : []), { id: `${data.snapshot.generatedAt}:${question}`, question, reply: data }]);
       setMessage("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The coach could not answer.");
