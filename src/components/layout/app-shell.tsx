@@ -99,10 +99,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/picks" className="sidebar-profile" onClick={() => setOpen(false)}>
           <header>
             <div className="sidebar-performance-icon"><Trophy /></div>
-            <div><strong>My Performance</strong><span>Rating & records</span><em>UPDATED AUTOMATICALLY</em></div>
+            <div><strong>Your performance</strong><span>Rating, records & pick cards</span></div>
           </header>
-          <p className="sidebar-performance-copy">See your rating, strongest categories, parlays, and confirmed results.</p>
-          <div className="profile-link">Open performance <ChevronRight size={15} /></div>
+          <div className="profile-link">Open tracker <ChevronRight size={15} /></div>
         </Link>
 
         <nav>
@@ -112,12 +111,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NavGroup label="ACCOUNT" items={tools} onNavigate={() => setOpen(false)} />
         </nav>
 
-        <div className="membership">
-          <span>STRATIQA ELITE</span>
-          <strong>30 DAYS FREE</strong>
-          <small>Founding members access.</small>
-          <Link href="/settings">View Membership</Link>
-        </div>
       </aside>
 
       {open ? <button className="scrim" aria-label="Close navigation" onClick={() => setOpen(false)} /> : null}
