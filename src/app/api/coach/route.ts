@@ -1,11 +1,11 @@
-import { answerCoach } from "@/lib/coach/service";
+import { answerCoach, fallbackCoachReply } from "@/lib/coach/service";
 import { validateCoachPrompt } from "@/lib/coach/validation";
 import { logger, requestId } from "@/lib/observability/logger";
 import { rateLimit, requestIdentity } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
   const id = requestId(request);
-  const limit = rateLimit(`coach:${requestIdentity(request)}`, 30, 60_000);
+  const limit = rateLimit(`coach:${requestIdentity(request)}`, 90, 60_000);
   if (!limit.allowed) return Response.json({ error: "Coach request limit reached." }, { status: 429, headers: { "X-Request-Id": id } });
   let body: unknown;
   try {
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     return Response.json(reply, { headers: { "X-Request-Id": id } });
   } catch (error) {
     logger.error("coach_request_failed", error, { requestId: id });
-    return Response.json({ error: "Coach data is temporarily unavailable." }, { status: 503, headers: { "X-Request-Id": id } });
+    const reply = fallbackCoachReply(result.value);
+    return Response.json(reply, { headers: { "X-Request-Id": id, "X-STRATIQA-Research-Mode": "recovery" } });
   }
 }

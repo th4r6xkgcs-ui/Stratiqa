@@ -50,7 +50,10 @@ export function LiveBoard() {
         setUpdatedAt(data.updatedAt ?? "");
         setSelectedDate("all");
       })
-      .catch(() => active && setEvents([]))
+      .catch(() => {
+        if (!active) return;
+        setEvents([]); setMode("unavailable"); setUpdatedAt("");
+      })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [sport]);

@@ -18,6 +18,14 @@ function emit(key: string) {
   listeners.get(key)?.forEach((listener) => listener());
 }
 
+function parseOrFallback<T>(serialized: string, fallback: string): T {
+  try {
+    return JSON.parse(serialized) as T;
+  } catch {
+    return JSON.parse(fallback) as T;
+  }
+}
+
 export function usePersistentState<T>(key: string, initialValue: T) {
   const fallback = JSON.stringify(initialValue);
   if (!serverSnapshots.has(key)) serverSnapshots.set(key, fallback);
@@ -26,10 +34,10 @@ export function usePersistentState<T>(key: string, initialValue: T) {
     () => window.localStorage.getItem(key) ?? fallback,
     () => serverSnapshots.get(key) ?? fallback,
   );
-  const value = JSON.parse(serialized) as T;
+  const value = parseOrFallback<T>(serialized, fallback);
   const setValue = useCallback((next: T | ((current: T) => T)) => {
     const currentSerialized = window.localStorage.getItem(key) ?? fallback;
-    const current = JSON.parse(currentSerialized) as T;
+    const current = parseOrFallback<T>(currentSerialized, fallback);
     const resolved = typeof next === "function" ? (next as (current: T) => T)(current) : next;
     window.localStorage.setItem(key, JSON.stringify(resolved));
     emit(key);

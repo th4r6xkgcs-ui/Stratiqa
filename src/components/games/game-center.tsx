@@ -82,7 +82,8 @@ export function GameCenter() {
       const data = await response.json();
       if (!response.ok) throw new Error(response.status === 401 ? "Sign in to see games connected to your locked picks." : data.error ?? "Game tracking is temporarily unavailable.");
       const timelineKey = "stratiqa.game-center.timelines.v1";
-      const current = JSON.parse(localStorage.getItem(timelineKey) ?? "{}");
+      let current: Record<string, TimelineEntry[]> = {};
+      try { current = JSON.parse(localStorage.getItem(timelineKey) ?? "{}"); } catch { localStorage.removeItem(timelineKey); }
       const observed = updateGameTimelines(current, data.picks ?? [], data.updatedAt ?? new Date().toISOString());
       localStorage.setItem(timelineKey, JSON.stringify(observed.timelines));
       setTimelines(observed.timelines);

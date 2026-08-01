@@ -49,7 +49,11 @@ export async function getLiveBoard(sport: LiveBoardSport): Promise<ProviderResul
     });
     liveBoards.set(sport, provider);
   }
-  return provider.getData();
+  try {
+    return await provider.getData();
+  } catch {
+    return new MockLiveBoardProvider(sport).getData();
+  }
 }
 
 export async function getProviderHealth(): Promise<{ environment: ReturnType<typeof getProviderEnvironment>; providers: ProviderHealth[] }> {
@@ -67,7 +71,11 @@ const matchupBase = {
 } as const;
 
 export async function getPropsBoard() {
-  return providers.props.getData();
+  try {
+    return await providers.props.getData();
+  } catch {
+    return new MockPropsProvider().getData();
+  }
 }
 
 export async function getMatchupIntelligence(slug: string): Promise<MatchupIntelligence | null> {
@@ -92,7 +100,7 @@ export async function getMatchupIntelligence(slug: string): Promise<MatchupIntel
     winProbability: 55, modelEdge: 4.5, expectedValue: 5.2, confidence: 68, valueGrade: "B",
   };
   const [odds, weather, injuries, stats, market] = await Promise.all([
-    boardResult ? Promise.resolve({ data: [], provider: boardResult.provider, mode: boardResult.mode, updatedAt: boardResult.updatedAt }) : providers.odds.getData(),
+    boardResult ? Promise.resolve({ data: [], provider: boardResult.provider, mode: boardResult.mode, updatedAt: boardResult.updatedAt }) : providers.odds.getData().catch(() => new MockOddsProvider().getData()),
     providers.weather.getData(), providers.injuries.getData(),
     providers.stats.getData(), providers.lineMovement.getData(),
   ]);
