@@ -66,6 +66,7 @@ export function GameCenter() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"picks" | "watch">("picks");
   const [filter, setFilter] = useState<"all" | PickState>("all");
   const [sport, setSport] = useState("all");
   const [favorites, setFavorites] = usePersistentState<string[]>("stratiqa.game-center.favorites.v1", []);
@@ -133,12 +134,13 @@ export function GameCenter() {
       <div className="game-center-summary"><span><i className="live" />{counts.live}<small>Live</small></span><span>{counts.upcoming}<small>Upcoming</small></span><span>{payload.picks.length}<small>Tracked picks</small></span></div>
     </header>
 
+    <section className="game-center-view-switch" aria-label="Game Center view"><button type="button" className={view === "picks" ? "active" : ""} onClick={() => setView("picks")}><Target /> My locked picks <b>{payload.picks.length}</b></button><button type="button" className={view === "watch" ? "active" : ""} onClick={() => setView("watch")}><Activity /> Watch every game</button></section>
+
+    {view === "watch" ? <LeagueScoreboard /> : <>
     <section className="game-center-toolbar">
       <nav>{(["all", "live", "upcoming", "awaiting", "settled"] as const).map((item) => <button type="button" className={filter === item ? "active" : ""} onClick={() => setFilter(item)} key={item}>{item === "all" ? "My Games" : item}</button>)}</nav>
       <div><select aria-label="Filter by league" value={sport} onChange={(event) => setSport(event.target.value)}><option value="all">All leagues</option>{sports.map((key) => <option value={key} key={key}>{leagues[key] ?? key}</option>)}</select>{notificationPermission === "default" ? <button type="button" onClick={enableBrowserAlerts}><Bell /> Enable alerts</button> : null}<button type="button" disabled={refreshing} onClick={() => load()}><RefreshCw className={refreshing ? "spinning" : ""} /> Refresh</button></div>
     </section>
-
-    <LeagueScoreboard />
 
     {loading ? <section className="game-center-loading">{[1, 2, 3].map((item) => <i key={item} />)}</section> :
       error ? <Card className="game-center-empty"><ShieldCheck /><h2>Game Center is safe</h2><p>{error}</p><Link href="/account">Open account</Link></Card> :
@@ -158,6 +160,7 @@ export function GameCenter() {
         {openRooms.includes(game.id) ? <GameRoom eventId={game.id} eventName={game.eventName} /> : null}
       </Card>)}</section> :
       <Card className="game-center-empty"><Target /><h2>{games.length ? "No games match these filters" : "Your Game Center is ready"}</h2><p>{games.length ? "Choose another status or league to see your tracked games." : "Lock a pregame pick and its game will automatically appear here. No extra tracking setup is needed."}</p><Link href={games.length ? "/games" : "/matchups"}>{games.length ? "Show all games" : "Find a pregame pick"}</Link></Card>}
+    </>}
 
     <footer className="game-center-freshness"><span><ShieldCheck /> {payload.provider === "live" ? "Official score feed" : "Schedule tracking"} · refresh pauses when this tab is hidden</span><span>{payload.updatedAt ? `Checked ${new Date(payload.updatedAt).toLocaleTimeString()}` : ""}{payload.refreshAfterSeconds ? ` · next check in about ${payload.refreshAfterSeconds}s` : ""}</span></footer>
   </div>;

@@ -14,7 +14,8 @@ type Turn = { id: string; question: string; reply: CoachReply };
 function isCoachTurn(value: unknown): value is Turn {
   if (!value || typeof value !== "object") return false;
   const turn = value as Partial<Turn>;
-  return typeof turn.id === "string" && typeof turn.question === "string" && Boolean(turn.reply) && typeof turn.reply?.answer === "string" && Boolean(turn.reply.snapshot) && typeof turn.reply.snapshot.mode === "string";
+  const reply = turn.reply as Partial<CoachReply> | undefined;
+  return typeof turn.id === "string" && typeof turn.question === "string" && typeof reply?.answer === "string" && Boolean(reply.snapshot) && typeof reply.snapshot?.mode === "string" && typeof reply.confidence?.value === "number" && typeof reply.confidence.explanation === "string" && typeof reply.risk?.level === "string" && typeof reply.risk.explanation === "string" && Array.isArray(reply.reasoning) && Array.isArray(reply.alternatives) && Array.isArray(reply.followUps);
 }
 
 export function CoachWorkspace() {
