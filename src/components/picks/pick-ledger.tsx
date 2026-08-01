@@ -224,10 +224,13 @@ export function PickLedger() {
         <a href="#history">Pick history</a>
       </nav>
 
+      <details className="performance-how-it-works">
+        <summary><span><ShieldAlert /> How your performance works</span><small>Ratings, settlement & confirmed money stats</small><ChevronDown /></summary>
       <section className="performance-explainer" aria-label="How performance is measured">
         <div><Trophy /><span><strong>STRATIQA performance</strong><small>Every pick locked before game time builds your rating after automatic settlement.</small></span></div>
         <div><ShieldAlert /><span><strong>Confirmed money stats</strong><small>Sportsbook proof adds real profit and ROI. Without proof, those two fields simply stay N/A.</small></span></div>
       </section>
+      </details>
 
       <div className="performance-workspace-toolbar"><span>Your view is saved on this device.</span><button type="button" className={editingLayout ? "active" : ""} aria-pressed={editingLayout} onClick={() => setEditingLayout((value) => !value)}><SlidersHorizontal /> {editingLayout ? "Done" : "Customize view"}</button>{editingLayout ? <button type="button" onClick={() => savePerformanceLayout(defaultPerformanceLayout)}><RotateCcw /> Reset</button> : null}</div>
       {editingLayout ? <div className="performance-visibility" aria-label="Performance section visibility">{performanceSectionIds.map((id) => <button type="button" className={performanceLayout.hidden.includes(id) ? "" : "active"} key={id} onClick={() => toggleSection(id)}>{performanceLayout.hidden.includes(id) ? "Show" : "Hide"} {performanceSectionLabels[id]}</button>)}</div> : null}
