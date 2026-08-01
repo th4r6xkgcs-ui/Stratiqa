@@ -6,6 +6,10 @@ import { addToSlip, slipEvent, type SlipLeg } from "@/lib/picks/slip";
 import { recommendedUnits } from "@/lib/picks/sizing";
 
 const storageKey = "stratiqa.pick-slip.v1";
+function ratingPreview(price: number) {
+  const implied = price > 0 ? 100 / (price + 100) : Math.abs(price) / (Math.abs(price) + 100);
+  return { implied: Math.round(implied * 100), win: Math.round(28 * (1 - implied)), loss: Math.round(28 * implied) };
+}
 export function PickSlip() {
   const [legs, setLegs] = useState<SlipLeg[]>([]);
   const [open, setOpen] = useState(false);
@@ -36,7 +40,7 @@ export function PickSlip() {
     const grade = !hasModelAnalysis ? "MARKET" : confidence >= 82 && ev >= 8 ? "A" : confidence >= 72 && ev >= 5 ? "B+" : confidence >= 62 ? "B" : "C";
     const winGain = legs.reduce((sum, leg) => sum + Math.round(28 * (1 - (leg.price > 0 ? 100 / (leg.price + 100) : Math.abs(leg.price) / (Math.abs(leg.price) + 100)))), 0);
     const loss = legs.reduce((sum, leg) => sum + Math.round(28 * (leg.price > 0 ? 100 / (leg.price + 100) : Math.abs(leg.price) / (Math.abs(leg.price) + 100))), 0);
-    return { confidence, ev, risk, grade, hasModelAnalysis, winGain, loss, correlated, autoUnits: recommendedUnits(confidence, correlated) };
+    return { confidence, ev, risk, grade, hasModelAnalysis, winGain, loss, correlated, previews: legs.map((leg) => ({ leg, ...ratingPreview(leg.price) })), autoUnits: recommendedUnits(confidence, correlated) };
   }, [legs]);
   async function lock() {
     if (legs.some((leg) => !leg.live || (leg.kind === "prop" ? !leg.propId : !leg.slug))) return setStatus("Only provider-verified pregame lines can be locked for ratings.");
@@ -62,6 +66,7 @@ export function PickSlip() {
       {legs.length ? <>
         <div className="global-slip-legs">{legs.map((leg) => <article key={leg.id}><button onClick={() => remove(leg.id)}><X /></button><small>{leg.eventName}</small><strong>{leg.selection}</strong><p>STRATIQA best line<b>{leg.price > 0 ? "+" : ""}{leg.price}</b></p><div className="slip-leg-badges"><em>MY PICK</em>{leg.modelName ? <em>MODEL ANALYSIS · {leg.modelName}</em> : null}{!leg.live ? <em>DEMO · NOT TRACKABLE</em> : <em className="verified"><ShieldCheck /> PREGAME LINE LOCK</em>}</div></article>)}</div>
         <section className="slip-analysis"><header><Sparkles /> CARD ANALYSIS <strong>{analysis.grade}</strong></header><div><span>{analysis.hasModelAnalysis ? "Overall model fit" : "Market-implied chance"}<b>{analysis.confidence}%</b></span><span>{analysis.hasModelAnalysis ? "Average model EV" : "Model EV"}<b>{analysis.hasModelAnalysis ? `+${analysis.ev.toFixed(1)}%` : "N/A"}</b></span><span>Risk level<b>{analysis.risk}</b></span></div><footer><span>If all win <b>≈ +{analysis.winGain}</b></span><span>If all lose <b>≈ −{analysis.loss}</b></span></footer></section>
+        <details className="slip-rating-preview"><summary><Sparkles /> See rating preview <ChevronDown /></summary><p>Every locked selection is graded separately after official settlement. These are price-based estimates; your verified category and calibration can adjust the final movement.</p><div>{analysis.previews.map(({ leg, implied, win, loss }) => <article key={leg.id}><span><strong>{leg.selection}</strong><small>{implied}% market baseline</small></span><b className="win">Win +{win}</b><b className="loss">Loss −{loss}</b></article>)}</div></details>
         <p className="slip-origin-note"><ShieldCheck /> Every selection is your pick. Locking preserves the line for ratings; optional sportsbook proof confirms real-world financial stats.</p>
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
