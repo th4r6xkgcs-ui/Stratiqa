@@ -8,6 +8,7 @@ import {
   Activity,
   ChartNoAxesCombined,
   ChevronRight,
+  Command,
   FlaskConical,
   Gauge,
   Menu,
@@ -19,7 +20,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AddPickLauncher } from "@/components/picks/add-pick-launcher";
 import { PickSlip } from "@/components/picks/pick-slip";
 
@@ -46,6 +47,7 @@ const tools = [
   { label: "Account & Privacy", href: "/account", icon: UserRound },
   { label: "Data Status", href: "/status", icon: Activity },
 ];
+const commandItems: Array<{ label: string; href: string; icon: typeof Gauge; badge?: string }> = [...navigation, ...intelligence, ...community, ...tools];
 
 function NavGroup({
   label,
@@ -83,7 +85,18 @@ function NavGroup({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommandOpen(true); }
+      if (event.key === "Escape") setCommandOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
   if (pathname === "/" || pathname === "/onboarding") return <>{children}</>;
+  const commandMatches = commandItems.filter((item) => item.label.toLowerCase().includes(commandQuery.trim().toLowerCase())).slice(0, 8);
   return (
     <div className="app-shell">
       <button className="mobile-menu" onClick={() => setOpen((value) => !value)} aria-label="Toggle navigation">
@@ -114,12 +127,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {open ? <button className="scrim" aria-label="Close navigation" onClick={() => setOpen(false)} /> : null}
+      {commandOpen ? <div className="command-backdrop" role="presentation" onMouseDown={() => setCommandOpen(false)}><section className="command-palette" role="dialog" aria-modal="true" aria-label="Quick navigation" onMouseDown={(event) => event.stopPropagation()}><header><Command /><input autoFocus value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} placeholder="Jump to a page…" aria-label="Search pages" /><kbd>ESC</kbd></header><div>{commandMatches.length ? commandMatches.map((item) => { const Icon = item.icon; return <Link href={item.href} key={item.href} onClick={() => { setCommandOpen(false); setCommandQuery(""); }}><Icon /><span><strong>{item.label}</strong><small>{item.href}</small></span>{item.badge ? <em>{item.badge}</em> : null}<ChevronRight /></Link>; }) : <p>No pages match that search.</p>}</div><footer><span><Command /> Quick navigation</span><span>Select a page to continue</span></footer></section></div> : null}
 
       <div className="app-main">
         <header className="topbar">
-          <label className="search-box">
+          <label className="search-box" onClick={() => setCommandOpen(true)}>
             <Search size={19} />
-            <input aria-label="Search" placeholder="Search teams, players, props..." />
+            <input aria-label="Search pages" readOnly placeholder="Search STRATIQA…" onFocus={() => setCommandOpen(true)} />
             <kbd>Ctrl K</kbd>
           </label>
           <div className="topbar-actions">
