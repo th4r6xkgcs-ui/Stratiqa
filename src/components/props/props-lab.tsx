@@ -31,8 +31,9 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
   const [sport, setSport] = useState("All");
   const [query, setQuery] = useState("");
   const [favorites, setFavorites] = usePersistentState<string[]>("stratiqa.props.favorites.v1", []);
+  const [showSaved, setShowSaved] = useState(false);
   const sports = useMemo(() => ["All", ...new Set(props.map((prop) => prop.providerSportKey).filter((value): value is string => Boolean(value)))], [props]);
-  const visible = useMemo(() => props.filter((prop) => (sport === "All" || prop.providerSportKey === sport) && (filter === "All" || prop.tags.includes(filter)) && `${prop.player} ${prop.team} ${prop.market}`.toLowerCase().includes(query.toLowerCase())), [filter, props, query, sport]);
+  const visible = useMemo(() => props.filter((prop) => (!showSaved || favorites.includes(prop.id)) && (sport === "All" || prop.providerSportKey === sport) && (filter === "All" || prop.tags.includes(filter)) && `${prop.player} ${prop.team} ${prop.market}`.toLowerCase().includes(query.toLowerCase())), [favorites, filter, props, query, showSaved, sport]);
   const toggleFavorite = (id: string) => setFavorites(favorites.includes(id) ? favorites.filter((item) => item !== id) : [...favorites, id]);
   const addProp = (prop: PropData, quote?: { book: string; outcomeName: string; price: number }) => addToSlip({
     id: `prop:${prop.id}:${quote?.book ?? provider}:${quote?.outcomeName ?? prop.line}`,
@@ -46,7 +47,9 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
     <section className="props-toolbar">
       <div><div className="filter-tabs">{sports.map((item) => <button className={sport === item ? "active" : ""} key={item} onClick={() => setSport(item)}>{item === "All" ? "All Sports" : leagueNames[item] ?? item}</button>)}</div><div className="filter-tabs">{filters.map((item) => <button className={filter === item ? "active" : ""} key={item} onClick={() => setFilter(item)}>{item}</button>)}</div></div>
       <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search players or markets" /></label>
+      <button type="button" className={`props-saved-toggle ${showSaved ? "active" : ""}`} aria-pressed={showSaved} onClick={() => setShowSaved((value) => !value)}><Bookmark size={14} fill={showSaved ? "currentColor" : "none"} /> Saved <b>{favorites.length}</b></button>
     </section>
+    {showSaved ? <aside className="props-saved-intro"><Bookmark fill="currentColor" /><span><strong>Your shortlist</strong><small>Keep ideas here, compare the signals, then add only the props you want to your slip.</small></span>{favorites.length ? <button type="button" onClick={() => setFavorites([])}>Clear saved</button> : null}</aside> : null}
     {visible.length ? <section className="props-grid">{visible.map((prop) => <Card className="prop-card glass-card" key={prop.id}>
       <header><div><Badge tone={prop.tags.includes("AI Pick") ? "accent" : "success"}>{prop.tags[0]}</Badge><small>{prop.matchup}</small></div><button className={favorites.includes(prop.id) ? "saved" : ""} aria-label={`Favorite ${prop.player}`} onClick={() => toggleFavorite(prop.id)}><Bookmark size={16} fill={favorites.includes(prop.id) ? "currentColor" : "none"} /></button></header>
       <div className="prop-player"><span>{prop.team || leagueNames[prop.providerSportKey ?? ""] || "PROP"}</span><div><h2>{prop.player}</h2><p>{prop.market} · {prop.point ?? prop.line.replace(/^(Over|Under) /, "")}</p></div></div>
@@ -55,7 +58,7 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
       <div className="prop-chart-row"><span><small>Last 7</small><TrendBars values={prop.trend} /></span><b>Projection {prop.projection}</b></div>
       <details className="prop-research-note"><summary>Research detail <ChevronDown /></summary><p><strong>Hit rate</strong> summarizes the recent tracked sample. <strong>Projection</strong> is the current provider or model estimate. Expected value and confidence are analysis signals, not guaranteed outcomes.</p><span><ShieldCheck /> {prop.live ? "This provider line can be locked before start and settled automatically." : "This fallback analysis is educational only and cannot be locked for ratings."}</span></details>
       <footer><div>{prop.tags.slice(1).map((tag) => <span key={tag}>{tag}</span>)}</div><small>{prop.live ? "LIVE PROVIDER MARKET" : "DEMO ANALYSIS"}</small></footer>
-    </Card>)}</section> : <Card className="premium-empty"><Search size={25} /><strong>No props match this view</strong><p>Adjust the search or clear the active category to see more opportunities.</p><button onClick={() => { setSport("All"); setFilter("All"); setQuery(""); }}>Clear filters</button></Card>}
+    </Card>)}</section> : <Card className="premium-empty"><Search size={25} /><strong>{showSaved ? "Your shortlist is empty" : "No props match this view"}</strong><p>{showSaved ? "Bookmark player props to keep them here for a clean, side-by-side review before you build your slip." : "Adjust the search or clear the active category to see more opportunities."}</p><button onClick={() => { setSport("All"); setFilter("All"); setQuery(""); if (showSaved) setShowSaved(false); }}>{showSaved ? "Browse all props" : "Clear filters"}</button></Card>}
     <p className="props-demo-note"><Badge tone={props.some((prop) => prop.live) ? "success" : "warning"}>{props.some((prop) => prop.live) ? "LIVE PROPS" : "DEMO FALLBACK"}</Badge>{provider} · Updated {new Date(updatedAt).toLocaleTimeString()}. Live provider lines lock into verified slips; fallback props remain analysis-only.</p>
   </div>;
 }
