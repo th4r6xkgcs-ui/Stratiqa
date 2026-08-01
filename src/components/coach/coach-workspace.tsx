@@ -21,6 +21,18 @@ class CoachResultBoundary extends Component<{ children: ReactNode }, { failed: b
   render() { return this.state.failed ? <div className="coach-error" role="alert"><p>This saved Coach response could not be displayed. Start a new conversation to continue.</p></div> : this.props.children; }
 }
 
+function recoveryReply(question: string): CoachReply {
+  const props = question.toLowerCase().includes("prop");
+  return {
+    answer: `I am in research mode while the live board refreshes. ${props ? "Start with player role, recent opportunity, and the posted pregame line." : "Start with the strongest pregame price, late availability news, and your own risk limit."} This is a usable research answer, not a live recommendation.`,
+    confidence: { value: 60, explanation: "Research-mode confidence is intentionally conservative until a current provider board is available." },
+    risk: { level: "High", explanation: "Confirm the game, line, and availability before you lock a pregame pick." },
+    reasoning: [{ title: "Price", detail: "Compare the current posted price before deciding." }, { title: "Availability", detail: "Check starting lineups, injuries, and expected role near game time." }, { title: "Discipline", detail: "Pass when the pregame line no longer fits your plan." }],
+    alternatives: [], followUps: prompts,
+    snapshot: { mode: "mock", provider: "STRATIQA Coach research recovery", generatedAt: new Date().toISOString(), edges: [] },
+  };
+}
+
 function isCoachTurn(value: unknown): value is Turn {
   if (!value || typeof value !== "object") return false;
   const turn = value as Partial<Turn>;
@@ -55,17 +67,21 @@ export function CoachWorkspace() {
   async function ask(question: string) {
     setPending(true);
     setError("");
+    let reply = recoveryReply(question);
     try {
-      const response = await fetch("/api/coach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: question, focus: "slate" }) });
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 12_000);
+      const response = await fetch("/api/coach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: question, focus: "slate" }), signal: controller.signal });
+      window.clearTimeout(timeout);
       const data = await response.json().catch(() => ({ error: "The Coach returned an unreadable response. Please try again." }));
-      if (!response.ok) throw new Error(data.error ?? "The coach could not answer.");
-      if (!isCoachTurn({ id: `${data.snapshot?.generatedAt ?? ""}:${question}`, question, reply: data })) throw new Error("The Coach response was incomplete. Please try again.");
-      setStreamed("");
-      setTurns((current) => [...(Array.isArray(current) ? current.filter(isCoachTurn) : []), { id: `${data.snapshot.generatedAt}:${question}`, question, reply: data }]);
-      setMessage("");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The coach could not answer.");
+      if (response.ok && isCoachTurn({ id: `${data.snapshot?.generatedAt ?? ""}:${question}`, question, reply: data })) reply = data;
+      else setError("Live research is refreshing, so the Coach gave you a safe research-mode answer.");
+    } catch {
+      setError("Live research is temporarily unavailable, so the Coach gave you a safe research-mode answer.");
     } finally {
+      setStreamed("");
+      setTurns((current) => [...(Array.isArray(current) ? current.filter(isCoachTurn) : []), { id: `${reply.snapshot.generatedAt}:${question}`, question, reply }]);
+      setMessage("");
       setPending(false);
     }
   }
