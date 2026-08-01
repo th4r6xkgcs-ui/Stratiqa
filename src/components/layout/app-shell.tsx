@@ -84,9 +84,11 @@ function NavGroup({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const advancedActive = [...intelligence, ...community, ...tools].some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommandOpen(true); }
@@ -119,9 +121,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav>
           <NavGroup items={navigation} onNavigate={() => setOpen(false)} />
-          <NavGroup label="INTELLIGENCE" items={intelligence} onNavigate={() => setOpen(false)} />
-          <NavGroup label="COMMUNITY" items={community} onNavigate={() => setOpen(false)} />
-          <NavGroup label="ACCOUNT" items={tools} onNavigate={() => setOpen(false)} />
+          <details className="sidebar-more" open={advancedActive || moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)}>
+            <summary><span>Explore more</span><small>Models, community & settings</small><ChevronRight /></summary>
+            <NavGroup label="INTELLIGENCE" items={intelligence} onNavigate={() => setOpen(false)} />
+            <NavGroup label="COMMUNITY" items={community} onNavigate={() => setOpen(false)} />
+            <NavGroup label="ACCOUNT" items={tools} onNavigate={() => setOpen(false)} />
+          </details>
         </nav>
 
       </aside>
