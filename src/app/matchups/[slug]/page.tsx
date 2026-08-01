@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Activity, ArrowLeft, BookOpen, BrainCircuit, CloudSun, Cross, Sparkles, TrendingUp, Users } from "lucide-react";
+import { Activity, ArrowLeft, BookOpen, BrainCircuit, ChevronDown, CloudSun, Cross, Sparkles, TrendingUp, Users } from "lucide-react";
 import { ConfidenceRing } from "@/components/ui/confidence-ring";
 import { Badge, Card } from "@/components/ui/primitives";
 import { ReasoningCard } from "@/components/intelligence/reasoning-card";
@@ -43,7 +43,7 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
 
       <div className="intelligence-columns">
         <section className="intelligence-main">
-          <Card className="market-intelligence">
+          <details className="matchup-deep-dive"><summary><span><TrendingUp /> Market detail</span><small>Price movement, money & ticket split</small><ChevronDown /></summary><Card className="market-intelligence">
             <header><span><TrendingUp size={17} /> Market intelligence</span><Badge tone="success">Live-ready</Badge></header>
             <div className="split-grid">
               <StatMeter label="Money %" value={`${matchup.market.moneyPercent}%`} detail="Handle share" />
@@ -51,15 +51,15 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
               <StatMeter label="Line movement" value={`${matchup.market.open > 0 ? "+" : ""}${matchup.market.open} → ${matchup.market.current > 0 ? "+" : ""}${matchup.market.current}`} detail="Open to current" tone="blue" />
             </div>
             <div className="line-chart" aria-label="Illustrative line movement chart"><i /><i /><i /><i /><i /><i /><i /></div>
-          </Card>
-          <Card className="reasoning-panel">
+          </Card></details>
+          <details className="matchup-deep-dive"><summary><span><BrainCircuit /> Full model reasoning</span><small>{matchup.reasoning.length} signals explained</small><ChevronDown /></summary><Card className="reasoning-panel">
             <header><span><BrainCircuit size={17} /> Why the model likes it</span></header>
             {matchup.reasoning.map((reason) => <ReasoningCard key={reason.title} {...reason} />)}
-          </Card>
+          </Card></details>
         </section>
 
         <aside className="intelligence-rail">
-          <Card>
+          <details className="matchup-deep-dive"><summary><span><Activity /> Edge profile</span><small>Injuries, conditions & form</small><ChevronDown /></summary><Card>
             <header><span><Activity size={16} /> Edge profile</span></header>
             <div className="factor-list">
               <span><Cross size={14} /> Injury impact <b>{matchup.injuryImpact}</b></span>
@@ -68,7 +68,7 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
               <span><Activity size={14} /> Starting pitching <b>+{matchup.startingPitchingEdge}%</b></span>
               <span><TrendingUp size={14} /> Recent form <b>{matchup.recentForm}</b></span>
             </div>
-          </Card>
+          </Card></details>
           <Card>
             <header><span><BookOpen size={16} /> Best lines</span></header>
             <div className="sportsbook-list"><div><span><strong>STRATIQA selected</strong><small>{selectedQuote.line}</small></span><b>{selectedQuote.price > 0 ? "+" : ""}{selectedQuote.price}</b><em>BEST</em></div></div>
