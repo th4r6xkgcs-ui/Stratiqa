@@ -17,6 +17,7 @@ export function PickSlip() {
   const [sizingMode, setSizingMode] = useState<"auto" | "custom">("auto");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [reviewOpen, setReviewOpen] = useState(false);
   useEffect(() => {
     Promise.resolve().then(() => {
       try { setLegs(JSON.parse(localStorage.getItem(storageKey) ?? "[]")); } catch { /* ignore invalid local data */ }
@@ -42,7 +43,7 @@ export function PickSlip() {
     const loss = legs.reduce((sum, leg) => sum + Math.round(28 * (leg.price > 0 ? 100 / (leg.price + 100) : Math.abs(leg.price) / (Math.abs(leg.price) + 100))), 0);
     return { confidence, ev, risk, grade, hasModelAnalysis, winGain, loss, correlated, previews: legs.map((leg) => ({ leg, ...ratingPreview(leg.price) })), autoUnits: recommendedUnits(confidence, correlated) };
   }, [legs]);
-  async function lock() {
+  async function submitLock() {
     if (legs.some((leg) => !leg.live || (leg.kind === "prop" ? !leg.propId : !leg.slug))) return setStatus("Only provider-verified pregame lines can be locked for ratings.");
     setSaving(true);
     const effectiveUnits = sizingMode === "auto" ? analysis.autoUnits : units;
@@ -57,6 +58,7 @@ export function PickSlip() {
     if (!response.ok) return setStatus(result.error);
     setStatus(`${result.picks.length} pick${result.picks.length === 1 ? "" : "s"} locked for STRATIQA ratings. Sportsbook proof is optional.`);
     setLegs([]);
+    setReviewOpen(false);
   }
   const remove = (id: string) => setLegs((current) => current.filter((leg) => leg.id !== id));
   return <>
@@ -71,11 +73,12 @@ export function PickSlip() {
         <section className="slip-sizing"><div><span>Stake tracking <small>Optional · never changes rating points</small></span><nav><button className={sizingMode === "auto" ? "active" : ""} onClick={() => setSizingMode("auto")}>Auto</button><button className={sizingMode === "custom" ? "active" : ""} onClick={() => setSizingMode("custom")}>Custom</button></nav></div>{sizingMode === "auto" ? <p><Sparkles /> Recommended for this card: <b>{analysis.autoUnits}u</b></p> : <label>Unit size<input aria-label="Custom unit size" type="number" min=".25" max="10" step=".25" value={units} onChange={(event) => setUnits(Number(event.target.value))} /></label>}</section>
         {legs.length > 1 ? <p className="slip-note"><AlertTriangle /> Rating changes are calculated per verified selection, preventing multi-leg inflation.</p> : null}
         {analysis.correlated ? <p className="slip-note"><AlertTriangle /> This card contains selections from the same event. Confidence and automatic sizing are reduced.</p> : null}
-        <button className="lock-slip" disabled={saving} onClick={lock}><LockKeyhole /> {saving ? "Locking…" : "Lock My Picks"}</button>
+        <button className="lock-slip" disabled={saving} onClick={() => setReviewOpen(true)}><LockKeyhole /> {saving ? "Locking…" : `Review ${legs.length === 1 ? "pick" : "picks"} before lock`}</button>
       </> : <div className="global-slip-empty"><ReceiptText /><strong>Your slip is empty</strong><p>Choose a pregame outcome to add it here.</p></div>}
       {status ? <p className="slip-status"><Check /> {status}</p> : null}
       <button className="slip-collapse" onClick={() => setOpen(false)}><ChevronDown /> Keep browsing</button>
     </aside>
+    {reviewOpen && legs.length ? <div className="slip-review-overlay" role="dialog" aria-modal="true" aria-label="Confirm locked picks"><button className="slip-review-backdrop" aria-label="Close lock review" onClick={() => setReviewOpen(false)} /><section className="slip-review"><header><span><LockKeyhole /> FINAL LOCK REVIEW</span><button type="button" aria-label="Close lock review" onClick={() => setReviewOpen(false)}><X /></button></header><strong>{legs.length === 1 ? "You are locking one pregame pick." : `You are locking ${legs.length} pregame picks.`}</strong><p>After confirmation, STRATIQA preserves the price and selection. Results are settled from official data; you cannot edit the pick after start.</p><div>{legs.map((leg) => <article key={leg.id}><span><small>{leg.eventName}</small><b>{leg.selection}</b></span><strong>{leg.price > 0 ? "+" : ""}{leg.price}</strong></article>)}</div><aside><ShieldCheck /><span><strong>Rating rule</strong><small>Each selection is rated separately after automatic settlement. Optional sportsbook proof only adds real-world financial statistics.</small></span></aside><footer><button type="button" onClick={() => setReviewOpen(false)}>Keep reviewing</button><button type="button" className="confirm-lock" disabled={saving} onClick={submitLock}><LockKeyhole /> {saving ? "Locking…" : "Confirm & lock picks"}</button></footer></section></div> : null}
   </>;
 }
 
