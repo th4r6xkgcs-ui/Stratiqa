@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BarChart3, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
@@ -57,8 +57,9 @@ export function PickLedger() {
   const [saving, setSaving] = useState(false);
   const [liveStatuses, setLiveStatuses] = useState<Record<string, LivePickStatus>>({});
   const [lifecycleFilter, setLifecycleFilter] = useState<"all" | LifecycleState>("all");
+  const refreshedSettlementIds = useRef(new Set<string>());
 
-  useEffect(() => {
+  const loadPicks = useCallback(() => {
     fetch("/api/picks", { cache: "no-store" })
       .then(async (response) => ({ response, result: await response.json() }))
       .then(({ response, result }) => {
@@ -77,6 +78,7 @@ export function PickLedger() {
       })
       .catch(() => setStatus("Your picks could not be loaded. Please try again."));
   }, []);
+  useEffect(() => { loadPicks(); }, [loadPicks]);
   useEffect(() => {
     let active = true;
     async function refreshLive() {
@@ -84,11 +86,18 @@ export function PickLedger() {
       if (!active || !response?.ok) return;
       const result = await response.json();
       setLiveStatuses(Object.fromEntries((result.picks ?? []).map((item: LivePickStatus) => [item.pickId, item])));
+      const newlySettled = (result.picks ?? []).filter((item: LivePickStatus) =>
+        item.state === "settled" && !refreshedSettlementIds.current.has(item.pickId),
+      );
+      if (newlySettled.length) {
+        newlySettled.forEach((item: LivePickStatus) => refreshedSettlementIds.current.add(item.pickId));
+        loadPicks();
+      }
     }
     refreshLive();
     const timer = window.setInterval(refreshLive, 90_000);
     return () => { active = false; window.clearInterval(timer); };
-  }, []);
+  }, [loadPicks]);
 
   const summary = useMemo(() => {
     const settled = picks.filter((pick) => pick.source === "provider" && pick.verificationStatus === "verified" && pick.result !== "pending");
