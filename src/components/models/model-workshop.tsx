@@ -9,6 +9,7 @@ import { ModelCommandCenter, type ManagedModel } from "@/components/models/model
 import { ModelArena } from "@/components/models/model-arena";
 import { ModelImprovementStudio, type ImprovementStudioData } from "@/components/models/model-improvement-studio";
 import { ModelLeague, type ModelLeagueData } from "@/components/models/model-league";
+import { ModelPromotionPath } from "@/components/models/model-promotion-path";
 
 type Model = ManagedModel;
 type Signal = { factor: string; weight: number; signal: number; contribution: number };
@@ -112,7 +113,7 @@ export function ModelWorkshop() {
       <footer><ShieldCheck /> A model earns trust from automatically verified, forward-looking results—not from simulated backtests or self-reported outcomes.</footer>
     </details>
 
-    {models.length ? <ModelArena models={models} /> : null}
+    {models.length ? <><ModelArena models={models} /><ModelPromotionPath models={models} /></> : null}
 
     {models.length && desk ? <section className="model-desk"><header><div><span className="landing-kicker">DAILY MODEL DESK</span><h2>Your systems&apos; clearest decisions</h2><p>Agreement is earned independently. Passed markets stay informational and never become user picks.</p></div><Badge tone="accent">{recommendations.length} QUALIFIED</Badge></header><div><Card><Sparkles /><span><small>BEST VALUE EDGE</small><strong>{desk.bestEdge?.selection ?? "No qualified edge"}</strong><p>{desk.bestEdge ? `${desk.bestEdge.modelName} · +${desk.bestEdge.expectedValue.toFixed(1)}% EV` : "Your models chose patience today."}</p></span></Card><Card><ShieldCheck /><span><small>SAFEST QUALIFIED EDGE</small><strong>{desk.safest?.selection ?? "No qualified edge"}</strong><p>{desk.safest ? `${desk.safest.confidence}% fit · ${desk.safest.signalAgreement}% signal agreement` : "No market cleared the threshold."}</p></span></Card><Card><Users /><span><small>MODEL CONSENSUS</small><strong>{desk.consensus.length > 1 ? desk.consensus[0].selection : "No consensus yet"}</strong><p>{desk.consensus.length > 1 ? `${desk.consensus.length} models independently agree` : "Models are evaluating different edges."}</p></span></Card><Card><EyeOff /><span><small>DISCIPLINED PASSES</small><strong>{desk.passes}</strong><p>Weak markets rejected instead of forced into picks.</p></span></Card></div>{desk.disagreements.length ? <aside><GitCompareArrows /><span><strong>Model disagreement</strong><small>{desk.disagreements.map((item) => `${item.modelName}: ${item.selection}`).join(" · ")}</small></span></aside> : null}</section> : null}
 
