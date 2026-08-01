@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, Bell, CalendarClock, Check, ChevronDown, Clock3, Heart, Radio, RefreshCw, ShieldCheck, Target, Trophy } from "lucide-react";
+import { Activity, Bell, CalendarClock, Check, ChevronDown, Clock3, Heart, MessageCircle, Radio, RefreshCw, ShieldCheck, Target, Trophy } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
+import { GameRoom } from "@/components/games/game-room";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { updateGameTimelines } from "@/lib/games/timeline.js";
 import { livePickProgress } from "@/lib/picks/live-progress.js";
@@ -69,6 +70,7 @@ export function GameCenter() {
   const [favorites, setFavorites] = usePersistentState<string[]>("stratiqa.game-center.favorites.v1", []);
   const [alerts, setAlerts] = usePersistentState<string[]>("stratiqa.game-center.alerts.v1", []);
   const [expanded, setExpanded] = useState<string[]>([]);
+  const [openRooms, setOpenRooms] = useState<string[]>([]);
   const [timelines, setTimelines] = useState<Record<string, TimelineEntry[]>>({});
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">(() => typeof Notification === "undefined" ? "unsupported" : Notification.permission);
 
@@ -148,7 +150,8 @@ export function GameCenter() {
           return <article key={pick.pickId}><i className={pick.state === "settled" ? pick.result : progress.tone}>{pick.state === "settled" ? pick.result.slice(0, 1).toUpperCase() : <Target />}</i><span><small>{pick.participantName ? "PLAYER PROP" : pick.marketKey?.replace("h2h", "MONEYLINE") ?? "LOCKED PICK"}{card.length > 1 ? ` · PARLAY ${cardSettled}/${card.length} FINAL` : ""}</small><strong>{pick.selection}</strong><em>{price(pick.americanOdds)} · {pick.confidence}% confidence{pick.providerStatValue != null ? ` · official value ${pick.providerStatValue}` : ""}</em></span><div className={pick.state === "settled" ? pick.result : progress.tone}><strong>{pick.state === "settled" ? pick.result.toUpperCase() : progress.label}</strong><small>{pick.state === "settled" ? pick.settlementReason ?? "Counted toward your rating" : pick.participantName ? "Official player progress appears when supported." : progress.detail}</small></div></article>;
         })}</div>
         {expanded.includes(game.id) ? <section className="game-intelligence"><div><ScoreFlow game={game} entries={timelines[game.id] ?? []} /><strong>Observed timeline</strong>{(timelines[game.id] ?? []).length ? <ol>{(timelines[game.id] ?? []).map((entry) => <li key={`${entry.signature}-${entry.at}`}><i className={entry.state} /><span>{entry.label}<small>{new Date(entry.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span></li>)}</ol> : <p>Timeline begins when the official feed reports a change.</p>}</div><div><strong>Data coverage</strong><dl><span><dt>Score</dt><dd>{game.homeScore != null || game.awayScore != null ? "Official feed" : "Waiting"}</dd></span><span><dt>Prop stats</dt><dd>{game.picks.some((pick) => pick.providerStatValue != null) ? "Official values" : "After final when supported"}</dd></span><span><dt>Team details</dt><dd>Provider upgrade required</dd></span><span><dt>Settlement</dt><dd>Automatic only</dd></span></dl></div></section> : null}
-        <footer><span><ShieldCheck /> Locked before game time · watch only</span><button type="button" onClick={() => setExpanded(expanded.includes(game.id) ? expanded.filter((id) => id !== game.id) : [...expanded, game.id])}>Game intelligence <ChevronDown className={expanded.includes(game.id) ? "open" : ""} /></button><Link href="/picks">Full performance <Trophy /></Link></footer>
+        <footer><span><ShieldCheck /> Locked before game time · watch only</span><button type="button" onClick={() => setExpanded(expanded.includes(game.id) ? expanded.filter((id) => id !== game.id) : [...expanded, game.id])}>Game intelligence <ChevronDown className={expanded.includes(game.id) ? "open" : ""} /></button><button type="button" onClick={() => setOpenRooms(openRooms.includes(game.id) ? openRooms.filter((id) => id !== game.id) : [...openRooms, game.id])}>Game room <MessageCircle /></button><Link href="/picks">Full performance <Trophy /></Link></footer>
+        {openRooms.includes(game.id) ? <GameRoom eventId={game.id} eventName={game.eventName} /> : null}
       </Card>)}</section> :
       <Card className="game-center-empty"><Target /><h2>{games.length ? "No games match these filters" : "Your Game Center is ready"}</h2><p>{games.length ? "Choose another status or league to see your tracked games." : "Lock a pregame pick and its game will automatically appear here. No extra tracking setup is needed."}</p><Link href={games.length ? "/games" : "/matchups"}>{games.length ? "Show all games" : "Find a pregame pick"}</Link></Card>}
 
