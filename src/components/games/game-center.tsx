@@ -44,6 +44,21 @@ function StateBadge({ state }: { state: PickState }) {
   return <Badge tone="neutral"><Check /> SETTLED</Badge>;
 }
 
+function ScoreFlow({ game, entries }: { game: Game; entries: TimelineEntry[] }) {
+  const readings = [...entries].reverse().map((entry) => {
+    const [, away, home] = entry.signature.split(":");
+    const awayScore = Number(away); const homeScore = Number(home);
+    return Number.isFinite(awayScore) && Number.isFinite(homeScore) ? { awayScore, homeScore, at: entry.at } : null;
+  }).filter((item): item is { awayScore: number; homeScore: number; at: string } => Boolean(item));
+  if (game.awayScore != null && game.homeScore != null && !readings.some((item) => item.awayScore === game.awayScore && item.homeScore === game.homeScore)) readings.push({ awayScore: game.awayScore, homeScore: game.homeScore, at: new Date().toISOString() });
+  if (readings.length < 2) return <div className="score-flow-empty"><Activity /><span><strong>Score flow starts with the next update</strong><small>This chart uses official score snapshots, not individual play-by-play.</small></span></div>;
+  const leads = readings.map((item) => item.homeScore - item.awayScore);
+  const range = Math.max(1, ...leads.map((value) => Math.abs(value)));
+  const points = leads.map((lead, index) => `${index / Math.max(1, leads.length - 1) * 100},${20 - lead / range * 16}`).join(" ");
+  const current = leads.at(-1) ?? 0;
+  return <section className="score-flow"><header><span><Activity /> Observed score flow</span><small>{current === 0 ? "Tied" : `${current > 0 ? game.homeTeam ?? "Home" : game.awayTeam ?? "Away"} ahead ${Math.abs(current)}`}</small></header><div><span>{game.awayTeam ?? "Away"}</span><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-label="Observed score flow"><line x1="0" x2="100" y1="20" y2="20" /><polyline points={points} /></svg><span>{game.homeTeam ?? "Home"}</span></div><footer>Official score updates only · not individual play-by-play</footer></section>;
+}
+
 export function GameCenter() {
   const [payload, setPayload] = useState<LivePayload>({ picks: [], updatedAt: "", refreshAfterSeconds: 0, provider: "schedule", unavailableSports: [] });
   const [loading, setLoading] = useState(true);
@@ -132,7 +147,7 @@ export function GameCenter() {
           const cardSettled = card.filter((leg) => leg.result !== "pending").length;
           return <article key={pick.pickId}><i className={pick.state === "settled" ? pick.result : progress.tone}>{pick.state === "settled" ? pick.result.slice(0, 1).toUpperCase() : <Target />}</i><span><small>{pick.participantName ? "PLAYER PROP" : pick.marketKey?.replace("h2h", "MONEYLINE") ?? "LOCKED PICK"}{card.length > 1 ? ` · PARLAY ${cardSettled}/${card.length} FINAL` : ""}</small><strong>{pick.selection}</strong><em>{price(pick.americanOdds)} · {pick.confidence}% confidence{pick.providerStatValue != null ? ` · official value ${pick.providerStatValue}` : ""}</em></span><div className={pick.state === "settled" ? pick.result : progress.tone}><strong>{pick.state === "settled" ? pick.result.toUpperCase() : progress.label}</strong><small>{pick.state === "settled" ? pick.settlementReason ?? "Counted toward your rating" : pick.participantName ? "Official player progress appears when supported." : progress.detail}</small></div></article>;
         })}</div>
-        {expanded.includes(game.id) ? <section className="game-intelligence"><div><strong>Observed timeline</strong>{(timelines[game.id] ?? []).length ? <ol>{(timelines[game.id] ?? []).map((entry) => <li key={`${entry.signature}-${entry.at}`}><i className={entry.state} /><span>{entry.label}<small>{new Date(entry.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span></li>)}</ol> : <p>Timeline begins when the official feed reports a change.</p>}</div><div><strong>Data coverage</strong><dl><span><dt>Score</dt><dd>{game.homeScore != null || game.awayScore != null ? "Official feed" : "Waiting"}</dd></span><span><dt>Prop stats</dt><dd>{game.picks.some((pick) => pick.providerStatValue != null) ? "Official values" : "After final when supported"}</dd></span><span><dt>Team details</dt><dd>Provider upgrade required</dd></span><span><dt>Settlement</dt><dd>Automatic only</dd></span></dl></div></section> : null}
+        {expanded.includes(game.id) ? <section className="game-intelligence"><div><ScoreFlow game={game} entries={timelines[game.id] ?? []} /><strong>Observed timeline</strong>{(timelines[game.id] ?? []).length ? <ol>{(timelines[game.id] ?? []).map((entry) => <li key={`${entry.signature}-${entry.at}`}><i className={entry.state} /><span>{entry.label}<small>{new Date(entry.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span></li>)}</ol> : <p>Timeline begins when the official feed reports a change.</p>}</div><div><strong>Data coverage</strong><dl><span><dt>Score</dt><dd>{game.homeScore != null || game.awayScore != null ? "Official feed" : "Waiting"}</dd></span><span><dt>Prop stats</dt><dd>{game.picks.some((pick) => pick.providerStatValue != null) ? "Official values" : "After final when supported"}</dd></span><span><dt>Team details</dt><dd>Provider upgrade required</dd></span><span><dt>Settlement</dt><dd>Automatic only</dd></span></dl></div></section> : null}
         <footer><span><ShieldCheck /> Locked before game time · watch only</span><button type="button" onClick={() => setExpanded(expanded.includes(game.id) ? expanded.filter((id) => id !== game.id) : [...expanded, game.id])}>Game intelligence <ChevronDown className={expanded.includes(game.id) ? "open" : ""} /></button><Link href="/picks">Full performance <Trophy /></Link></footer>
       </Card>)}</section> :
       <Card className="game-center-empty"><Target /><h2>{games.length ? "No games match these filters" : "Your Game Center is ready"}</h2><p>{games.length ? "Choose another status or league to see your tracked games." : "Lock a pregame pick and its game will automatically appear here. No extra tracking setup is needed."}</p><Link href={games.length ? "/games" : "/matchups"}>{games.length ? "Show all games" : "Find a pregame pick"}</Link></Card>}
