@@ -583,8 +583,11 @@ button { color: inherit; }
 .prop-card > header { display: flex; justify-content: space-between; align-items: center; padding: 11px 13px; border-bottom: 1px solid var(--line); }
 .prop-card > header > div { display: flex; align-items: center; gap: 8px; }.prop-card header small { color: var(--muted); font-size: 8px; }
 .prop-card header button { color: var(--muted); background: transparent; border: 0; cursor: pointer; }.prop-card header button.saved { color: var(--purple); }
-.prop-player { display: grid; grid-template-columns: 38px 1fr auto; gap: 9px; align-items: center; padding: 16px 13px; }
-.prop-player > span { display: grid; place-items: center; width: 37px; height: 37px; color: var(--green); background: #091b25; border: 1px solid #214350; border-radius: 50%; font-size: 9px; font-weight: 800; }
+.prop-player { display: grid; grid-template-columns: 42px 1fr auto; gap: 9px; align-items: center; padding: 16px 13px; }
+.player-avatar { display: block; flex: 0 0 auto; background-image: url('/images/stratiqa-athlete-avatars.png'); background-repeat: no-repeat; background-size: 200% 200%; background-color: #0a1722; border: 1px solid rgba(164,82,255,.52); border-radius: 50%; box-shadow: 0 0 0 2px rgba(92,255,49,.13), 0 0 18px rgba(166,82,255,.15); }
+.player-avatar--md { width: 39px; height: 39px; }
+.player-avatar--sm { width: 28px; height: 28px; }
+.prop-player > small { padding: 4px 6px; color: var(--green); background: rgba(92,255,49,.07); border: 1px solid rgba(92,255,49,.18); border-radius: 4px; font-size: 6px; font-weight: 900; }
 .prop-player h2 { margin: 0; font-size: 13px; }.prop-player p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }.prop-player > strong { color: var(--green); }
 .prop-metrics { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 13px; border: 1px solid var(--line); border-radius: 6px; }
 .prop-metrics span { display: flex; flex-direction: column; gap: 5px; padding: 10px; border-right: 1px solid var(--line); }.prop-metrics span:last-child { border: 0; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { Component, FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { ArrowUp, Bot, CheckCircle2, ChevronDown, Database, History, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { CoachInsights } from "./coach-insights";
@@ -11,11 +11,21 @@ import { ProviderHealthPanel } from "@/components/intelligence/provider-health-p
 const prompts = ["Explain today's top play", "Find another edge", "Safest bet today", "Biggest upset chance", "Best value play", "Show best props"];
 type Turn = { id: string; question: string; reply: CoachReply };
 
+function isText(value: unknown): value is string { return typeof value === "string"; }
+function isReasoning(value: unknown): value is { title: string; detail: string }[] { return Array.isArray(value) && value.every((item) => Boolean(item) && typeof item === "object" && isText((item as { title?: unknown }).title) && isText((item as { detail?: unknown }).detail)); }
+function isAlternatives(value: unknown): value is CoachReply["alternatives"] { return Array.isArray(value) && value.every((item) => Boolean(item) && typeof item === "object" && isText((item as { selection?: unknown }).selection) && typeof (item as { expectedValue?: unknown }).expectedValue === "number" && typeof (item as { confidence?: unknown }).confidence === "number"); }
+
+class CoachResultBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <div className="coach-error" role="alert"><p>This saved Coach response could not be displayed. Start a new conversation to continue.</p></div> : this.props.children; }
+}
+
 function isCoachTurn(value: unknown): value is Turn {
   if (!value || typeof value !== "object") return false;
   const turn = value as Partial<Turn>;
   const reply = turn.reply as Partial<CoachReply> | undefined;
-  return typeof turn.id === "string" && typeof turn.question === "string" && typeof reply?.answer === "string" && Boolean(reply.snapshot) && typeof reply.snapshot?.mode === "string" && typeof reply.confidence?.value === "number" && typeof reply.confidence.explanation === "string" && typeof reply.risk?.level === "string" && typeof reply.risk.explanation === "string" && Array.isArray(reply.reasoning) && Array.isArray(reply.alternatives) && Array.isArray(reply.followUps);
+  return isText(turn.id) && isText(turn.question) && isText(reply?.answer) && Boolean(reply.snapshot) && (reply.snapshot?.mode === "live" || reply.snapshot?.mode === "mock") && isText(reply.snapshot?.generatedAt) && typeof reply.confidence?.value === "number" && isText(reply.confidence.explanation) && (reply.risk?.level === "Low" || reply.risk?.level === "Medium" || reply.risk?.level === "High") && isText(reply.risk.explanation) && isReasoning(reply.reasoning) && isAlternatives(reply.alternatives) && Array.isArray(reply.followUps) && reply.followUps.every(isText);
 }
 
 export function CoachWorkspace() {
@@ -81,13 +91,13 @@ export function CoachWorkspace() {
         </header>
         <div className="coach-thread" aria-live="polite">
           <div className="coach-message coach-message--assistant"><Sparkles size={17} /><div><strong>STRATIQA Coach</strong><p>I analyze price, probability, form, injuries, weather, and market behavior together. Ask me where the slate&apos;s best risk-adjusted value sits.</p></div></div>
-          {historyOpen ? turns.map((turn, index) => (
+          {historyOpen ? <CoachResultBoundary>{turns.map((turn, index) => (
             <div className="coach-turn" key={turn.id}>
               <div className="coach-message coach-message--user"><div><strong>You</strong><p>{turn.question}</p></div></div>
               <div className="coach-message coach-message--assistant"><Sparkles size={17} /><div><strong>STRATIQA Coach</strong><p>{index === turns.length - 1 ? streamed : turn.reply.answer}</p>{index === turns.length - 1 && streamed.length < turn.reply.answer.length ? <i className="stream-cursor" /> : null}</div></div>
               {index === turns.length - 1 && streamed.length >= turn.reply.answer.length ? <CoachInsights reply={turn.reply} /> : null}
             </div>
-          )) : <button className="history-collapsed" onClick={() => setHistoryOpen(true)}>{turns.length} conversation {turns.length === 1 ? "turn" : "turns"} hidden</button>}
+          ))}</CoachResultBoundary> : <button className="history-collapsed" onClick={() => setHistoryOpen(true)}>{turns.length} conversation {turns.length === 1 ? "turn" : "turns"} hidden</button>}
           {pending ? <div className="coach-loading"><i /><i /><i /> Comparing models and markets…</div> : null}
           {error ? <div className="coach-error" role="alert"><p>{error}</p><button type="button" onClick={() => latest ? void ask(latest.question) : void ask("Explain today's top play")}>Try again</button></div> : null}
           <div ref={bottomRef} />
