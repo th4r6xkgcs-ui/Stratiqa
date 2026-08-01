@@ -152,6 +152,20 @@ export function PickLedger() {
   const visiblePicks = useMemo(() => picks.filter((pick) => lifecycleFilter === "all" ||
     (pick.source === "provider" && (liveStatuses[pick.id]?.state ?? pickLifecycle(pick)) === lifecycleFilter)
   ), [lifecycleFilter, liveStatuses, picks]);
+  const modelContributions = useMemo(() => {
+    const contributions = new Map<string, { name: string; category: string; settled: number; wins: number; losses: number; pushes: number }>();
+    for (const pick of picks) {
+      if (!pick.modelName || pick.source !== "provider" || pick.verificationStatus !== "verified" || pick.result === "pending") continue;
+      const key = `${pick.modelName}:${pick.category}`;
+      const current = contributions.get(key) ?? { name: pick.modelName, category: pick.category, settled: 0, wins: 0, losses: 0, pushes: 0 };
+      current.settled += 1;
+      if (pick.result === "win") current.wins += 1;
+      if (pick.result === "loss") current.losses += 1;
+      if (pick.result === "push") current.pushes += 1;
+      contributions.set(key, current);
+    }
+    return [...contributions.values()].sort((left, right) => right.settled - left.settled || right.wins - left.wins).slice(0, 6);
+  }, [picks]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -263,6 +277,13 @@ export function PickLedger() {
             <em>{item.gradedPicks >= 25 ? "RANKED" : `${Math.max(0, 25 - item.gradedPicks)} TO RANK`}</em>
           </article>;
         })}</div> : <div className="specialties-empty"><Target /><span><strong>Your specialties will appear here</strong><small>Lock picks across different markets to discover where your model performs best.</small></span></div>}
+      </Card>
+      <Card className="model-contributions">
+        <header><span><Sparkles /> Model contribution</span><Link href="/lab">Open Model Lab <ArrowRight /></Link></header>
+        {modelContributions.length ? <div>{modelContributions.map((model) => {
+          const decisions = model.wins + model.losses;
+          return <article key={`${model.name}-${model.category}`}><span><strong>{model.name}</strong><small>{categoryNames[model.category] ?? model.category} · {model.settled} verified result{model.settled === 1 ? "" : "s"}</small></span><b>{decisions ? `${Math.round(model.wins / decisions * 100)}%` : "—"}<small>accuracy</small></b><em>{model.wins}-{model.losses}{model.pushes ? `-${model.pushes}` : ""}</em></article>;
+        })}</div> : <div className="model-contribution-empty"><Sparkles /><span><strong>Your model record will appear here</strong><small>Lock a pick from a Model Lab recommendation, then let official settlement build its evidence.</small></span><Link href="/lab">Build a model <ArrowRight /></Link></div>}
       </Card>
       </section> : null}
 
