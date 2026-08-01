@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, ChevronDown, Clock3, LockKeyhole, Plus, ShieldAlert, Sparkles, Target, Trophy, Zap } from "lucide-react";
+import { ArrowRight, BarChart3, ChevronDown, ChevronUp, Clock3, EyeOff, GripVertical, LockKeyhole, Plus, RotateCcw, ShieldAlert, SlidersHorizontal, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { lifecycleLabel, pickLifecycle } from "@/lib/picks/lifecycle.js";
 import { ratingImpactExplanation } from "@/lib/notifications/settlement-feed.js";
@@ -23,6 +23,13 @@ const categoryNames: Record<string, string> = {
   live: "Live Markets",
 };
 type LifecycleState = "upcoming" | "live" | "awaiting" | "settled";
+const performanceSectionIds = ["overview", "specialties", "parlays", "history"] as const;
+type PerformanceSectionId = typeof performanceSectionIds[number];
+const performanceSectionLabels: Record<PerformanceSectionId, string> = {
+  overview: "Rating overview", specialties: "Category specialties", parlays: "Parlay cards", history: "Pick history",
+};
+type PerformanceLayout = { order: PerformanceSectionId[]; hidden: PerformanceSectionId[] };
+const defaultPerformanceLayout: PerformanceLayout = { order: [...performanceSectionIds], hidden: [] };
 type LivePickStatus = {
   pickId: string; state: LifecycleState; homeTeam: string | null; awayTeam: string | null;
   homeScore: number | null; awayScore: number | null;
@@ -57,6 +64,9 @@ export function PickLedger() {
   const [saving, setSaving] = useState(false);
   const [liveStatuses, setLiveStatuses] = useState<Record<string, LivePickStatus>>({});
   const [lifecycleFilter, setLifecycleFilter] = useState<"all" | LifecycleState>("all");
+  const [performanceLayout, setPerformanceLayout] = useState<PerformanceLayout>(defaultPerformanceLayout);
+  const [editingLayout, setEditingLayout] = useState(false);
+  const [draggingSection, setDraggingSection] = useState<PerformanceSectionId | null>(null);
   const refreshedSettlementIds = useRef(new Set<string>());
 
   const loadPicks = useCallback(() => {
@@ -79,6 +89,20 @@ export function PickLedger() {
       .catch(() => setStatus("Your picks could not be loaded. Please try again."));
   }, []);
   useEffect(() => { loadPicks(); }, [loadPicks]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem("stratiqa.performance.layout.v1") ?? "null") as Partial<PerformanceLayout> | null;
+        if (!saved) return;
+        const order = Array.isArray(saved.order)
+          ? [...new Set(saved.order.filter((id): id is PerformanceSectionId => performanceSectionIds.includes(id as PerformanceSectionId))), ...performanceSectionIds.filter((id) => !saved.order?.includes(id))]
+          : [...performanceSectionIds];
+        const hidden = Array.isArray(saved.hidden) ? saved.hidden.filter((id): id is PerformanceSectionId => performanceSectionIds.includes(id as PerformanceSectionId)) : [];
+        setPerformanceLayout({ order, hidden: [...new Set(hidden)] });
+      } catch { setPerformanceLayout(defaultPerformanceLayout); }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
   useEffect(() => {
     let active = true;
     async function refreshLive() {
@@ -146,6 +170,37 @@ export function PickLedger() {
     setStatus("Saved to your private practice journal.");
   }
 
+  function savePerformanceLayout(next: PerformanceLayout) {
+    setPerformanceLayout(next);
+    localStorage.setItem("stratiqa.performance.layout.v1", JSON.stringify(next));
+  }
+  function moveSection(id: PerformanceSectionId, direction: -1 | 1) {
+    const index = performanceLayout.order.indexOf(id);
+    const target = index + direction;
+    if (target < 0 || target >= performanceLayout.order.length) return;
+    const order = [...performanceLayout.order];
+    [order[index], order[target]] = [order[target], order[index]];
+    savePerformanceLayout({ ...performanceLayout, order });
+  }
+  function dropSection(target: PerformanceSectionId) {
+    if (!draggingSection || draggingSection === target) return setDraggingSection(null);
+    const order = performanceLayout.order.filter((id) => id !== draggingSection);
+    order.splice(order.indexOf(target), 0, draggingSection);
+    savePerformanceLayout({ ...performanceLayout, order });
+    setDraggingSection(null);
+  }
+  function toggleSection(id: PerformanceSectionId) {
+    const hidden = performanceLayout.hidden.includes(id) ? performanceLayout.hidden.filter((item) => item !== id) : [...performanceLayout.hidden, id];
+    savePerformanceLayout({ ...performanceLayout, hidden });
+  }
+  const sectionProps = (id: PerformanceSectionId) => ({
+    className: `performance-workspace-section${editingLayout ? " is-editing" : ""}${draggingSection === id ? " is-dragging" : ""}`,
+    style: { order: performanceLayout.order.indexOf(id) }, draggable: editingLayout,
+    onDragStart: () => setDraggingSection(id), onDragEnd: () => setDraggingSection(null),
+    onDragOver: (event: React.DragEvent) => event.preventDefault(), onDrop: () => dropSection(id),
+  });
+  const sectionControls = (id: PerformanceSectionId) => editingLayout ? <div className="performance-section-controls"><GripVertical aria-hidden="true" /><span>{performanceSectionLabels[id]}</span><button type="button" onClick={() => toggleSection(id)} aria-label={`Hide ${performanceSectionLabels[id]}`}><EyeOff /></button><button type="button" onClick={() => moveSection(id, -1)} disabled={performanceLayout.order.indexOf(id) === 0} aria-label={`Move ${performanceSectionLabels[id]} up`}><ChevronUp /></button><button type="button" onClick={() => moveSection(id, 1)} disabled={performanceLayout.order.indexOf(id) === performanceLayout.order.length - 1} aria-label={`Move ${performanceSectionLabels[id]} down`}><ChevronDown /></button></div> : null;
+
   return (
     <div className="pick-journey">
       <nav className="performance-jump" aria-label="Performance sections">
@@ -160,6 +215,12 @@ export function PickLedger() {
         <div><ShieldAlert /><span><strong>Confirmed money stats</strong><small>Sportsbook proof adds real profit and ROI. Without proof, those two fields simply stay N/A.</small></span></div>
       </section>
 
+      <div className="performance-workspace-toolbar"><span>Your view is saved on this device.</span><button type="button" className={editingLayout ? "active" : ""} aria-pressed={editingLayout} onClick={() => setEditingLayout((value) => !value)}><SlidersHorizontal /> {editingLayout ? "Done" : "Customize view"}</button>{editingLayout ? <button type="button" onClick={() => savePerformanceLayout(defaultPerformanceLayout)}><RotateCcw /> Reset</button> : null}</div>
+      {editingLayout ? <div className="performance-visibility" aria-label="Performance section visibility">{performanceSectionIds.map((id) => <button type="button" className={performanceLayout.hidden.includes(id) ? "" : "active"} key={id} onClick={() => toggleSection(id)}>{performanceLayout.hidden.includes(id) ? "Show" : "Hide"} {performanceSectionLabels[id]}</button>)}</div> : null}
+
+      <div className="performance-workspace">
+      {!performanceLayout.hidden.includes("overview") ? <section {...sectionProps("overview")}>
+      {sectionControls("overview")}
       <section className="pick-rating-grid" id="overview">
         <Card className="pick-rating-card">
           <div className="rating-glow" style={{ background: summary.rank.color }} />
@@ -187,7 +248,10 @@ export function PickLedger() {
         <div><small>CONFIRMED</small><strong className={summary.hasRealMoney && summary.realProfit >= 0 ? "positive" : summary.hasRealMoney ? "negative" : ""}>{summary.hasRealMoney ? `${summary.realProfit >= 0 ? "+" : ""}$${summary.realProfit.toFixed(2)}` : "N/A"}</strong><span>Real profit</span></div>
         <div><small>CONFIRMED</small><strong>{summary.hasRealMoney ? `${summary.realRoi.toFixed(1)}%` : "N/A"}</strong><span>Real ROI</span></div>
       </section>
+      </section> : null}
 
+      {!performanceLayout.hidden.includes("specialties") ? <section {...sectionProps("specialties")}>
+      {sectionControls("specialties")}
       <Card className="performance-specialties" id="specialties">
         <header><span><BarChart3 /> Category specialties</span><Link href="/leaderboard">View leaderboards <ArrowRight /></Link></header>
         <p>Your overall rating is only the start. Each pick type has its own rating so your strongest edge is easy to see.</p>
@@ -200,7 +264,10 @@ export function PickLedger() {
           </article>;
         })}</div> : <div className="specialties-empty"><Target /><span><strong>Your specialties will appear here</strong><small>Lock picks across different markets to discover where your model performs best.</small></span></div>}
       </Card>
+      </section> : null}
 
+      {!performanceLayout.hidden.includes("parlays") ? <section {...sectionProps("parlays")}>
+      {sectionControls("parlays")}
       {cards.some((card) => card.cardType === "parlay") ? <Card className="parlay-record" id="parlays">
         <header><span><Trophy /> Parlay cards</span><Badge>{cards.filter((card) => card.cardType === "parlay").length}</Badge></header>
         <div>{cards.filter((card) => card.cardType === "parlay").slice(0, 6).map((card) => {
@@ -212,7 +279,10 @@ export function PickLedger() {
         })}</div>
         <p>Each leg keeps its category record. The complete card separately builds your Parlay rating.</p>
       </Card> : <Card className="parlay-record parlay-record-empty" id="parlays"><header><span><Trophy /> Parlay cards</span><Badge>0</Badge></header><div className="specialties-empty"><Target /><span><strong>No parlays tracked yet</strong><small>Build a multi-leg slip and lock it to begin your separate Parlay rating.</small></span></div></Card>}
+      </section> : null}
 
+      {!performanceLayout.hidden.includes("history") ? <section {...sectionProps("history")}>
+      {sectionControls("history")}
       <section className="pick-lifecycle-board" aria-label="Filter picks by status">
         <button className={lifecycleFilter === "all" ? "active" : ""} onClick={() => setLifecycleFilter("all")}><span>All picks</span><strong>{picks.filter((pick) => pick.source === "provider").length}</strong></button>
         {(["upcoming", "live", "awaiting", "settled"] as LifecycleState[]).map((state) => <button className={lifecycleFilter === state ? `active ${state}` : state} onClick={() => setLifecycleFilter(state)} key={state}><span>{lifecycleLabel(state)}</span><strong>{lifecycleCounts[state]}</strong>{state === "live" ? <i /> : null}</button>)}
@@ -264,6 +334,8 @@ export function PickLedger() {
             <details><summary>Advanced stats <ChevronDown /></summary><small>Closing-line value, confidence calibration, category performance, and sample strength contribute behind the scenes. Units are bankroll analytics only.</small></details>
           </Card>
         </aside>
+      </div>
+      </section> : null}
       </div>
       {status ? <p className="ledger-status" role="status">{status}</p> : null}
     </div>
