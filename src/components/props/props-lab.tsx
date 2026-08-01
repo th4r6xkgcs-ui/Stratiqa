@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bookmark, Plus, Search } from "lucide-react";
+import { Bookmark, ChevronDown, Plus, Search, ShieldCheck } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 import type { PropData } from "@/services/types";
 import { usePersistentState } from "@/hooks/use-persistent-state";
@@ -53,6 +53,7 @@ export function PropsLab({ props, provider, updatedAt }: { props: PropData[]; pr
       {prop.quotes?.length ? <div className="prop-book-lines">{bestOutcomeQuotes(prop).map((quote) => <button key={quote.outcomeName} onClick={() => addProp(prop, quote)}><span>{quote.outcomeName} {prop.point}<small>STRATIQA best line</small></span><b>{quote.price > 0 ? "+" : ""}{quote.price}</b><Plus /></button>)}</div> : <button className="prop-single-line" onClick={() => addProp(prop)}><span>{prop.line}<small>STRATIQA line</small></span><b>{prop.price > 0 ? "+" : ""}{prop.price}</b><Plus /></button>}
       <div className="prop-metrics"><span><small>Hit rate</small><strong>{prop.hitRate}%</strong></span><span><small>Expected value</small><strong>+{prop.expectedValue}%</strong></span><span><small>Confidence</small><strong>{prop.confidence}%</strong></span></div>
       <div className="prop-chart-row"><span><small>Last 7</small><TrendBars values={prop.trend} /></span><b>Projection {prop.projection}</b></div>
+      <details className="prop-research-note"><summary>Research detail <ChevronDown /></summary><p><strong>Hit rate</strong> summarizes the recent tracked sample. <strong>Projection</strong> is the current provider or model estimate. Expected value and confidence are analysis signals, not guaranteed outcomes.</p><span><ShieldCheck /> {prop.live ? "This provider line can be locked before start and settled automatically." : "This fallback analysis is educational only and cannot be locked for ratings."}</span></details>
       <footer><div>{prop.tags.slice(1).map((tag) => <span key={tag}>{tag}</span>)}</div><small>{prop.live ? "LIVE PROVIDER MARKET" : "DEMO ANALYSIS"}</small></footer>
     </Card>)}</section> : <Card className="premium-empty"><Search size={25} /><strong>No props match this view</strong><p>Adjust the search or clear the active category to see more opportunities.</p><button onClick={() => { setSport("All"); setFilter("All"); setQuery(""); }}>Clear filters</button></Card>}
     <p className="props-demo-note"><Badge tone={props.some((prop) => prop.live) ? "success" : "warning"}>{props.some((prop) => prop.live) ? "LIVE PROPS" : "DEMO FALLBACK"}</Badge>{provider} · Updated {new Date(updatedAt).toLocaleTimeString()}. Live provider lines lock into verified slips; fallback props remain analysis-only.</p>
