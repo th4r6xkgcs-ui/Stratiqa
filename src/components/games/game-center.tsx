@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Activity, Bell, CalendarClock, Check, ChevronDown, Clock3, Heart, MessageCircle, Radio, RefreshCw, ShieldCheck, Target, Trophy } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 import { GameRoom } from "@/components/games/game-room";
+import { LeagueScoreboard } from "@/components/games/league-scoreboard";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { updateGameTimelines } from "@/lib/games/timeline.js";
 import { livePickProgress } from "@/lib/picks/live-progress.js";
@@ -127,7 +128,7 @@ export function GameCenter() {
 
   return <div className="page game-center-page">
     <header className="page-header game-center-hero">
-      <div><Badge tone="accent"><Activity /> LIVE GAME CENTER</Badge><h1>Your picks. One place. All game.</h1><p>Follow every decision you locked before game time. Scores update automatically; betting stays closed once play begins.</p></div>
+      <div><Badge tone="accent"><Activity /> LIVE GAME CENTER</Badge><h1>Every game. Your picks. One place.</h1><p>Browse public scores, then follow every decision you locked before game time. Betting stays closed once play begins.</p></div>
       <div className="game-center-summary"><span><i className="live" />{counts.live}<small>Live</small></span><span>{counts.upcoming}<small>Upcoming</small></span><span>{payload.picks.length}<small>Tracked picks</small></span></div>
     </header>
 
@@ -135,6 +136,8 @@ export function GameCenter() {
       <nav>{(["all", "live", "upcoming", "awaiting", "settled"] as const).map((item) => <button type="button" className={filter === item ? "active" : ""} onClick={() => setFilter(item)} key={item}>{item === "all" ? "My Games" : item}</button>)}</nav>
       <div><select aria-label="Filter by league" value={sport} onChange={(event) => setSport(event.target.value)}><option value="all">All leagues</option>{sports.map((key) => <option value={key} key={key}>{leagues[key] ?? key}</option>)}</select>{notificationPermission === "default" ? <button type="button" onClick={enableBrowserAlerts}><Bell /> Enable alerts</button> : null}<button type="button" disabled={refreshing} onClick={() => load()}><RefreshCw className={refreshing ? "spinning" : ""} /> Refresh</button></div>
     </section>
+
+    <LeagueScoreboard />
 
     {loading ? <section className="game-center-loading">{[1, 2, 3].map((item) => <i key={item} />)}</section> :
       error ? <Card className="game-center-empty"><ShieldCheck /><h2>Game Center is safe</h2><p>{error}</p><Link href="/account">Open account</Link></Card> :
