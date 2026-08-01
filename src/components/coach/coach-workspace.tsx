@@ -126,9 +126,14 @@ export function CoachWorkspace() {
         </form>
       </Card>
       <aside className="coach-context">
-        <ProviderHealthPanel />
-        <Card className="glass-card"><header><span><Database size={17} /> Data context</span></header><div className="coach-context-body"><p><CheckCircle2 /> Seven provider services connected</p><p><ShieldCheck /> Credentials remain server-side</p><small>{latest ? `${latest.reply.snapshot.provider} · refreshed ${new Date(latest.reply.snapshot.generatedAt).toLocaleTimeString()}` : "Representative providers are active until live credentials are configured."}</small></div></Card>
-        <Card><header><span>How answers are ranked</span></header><ol className="coach-ranking"><li><b>1</b><span><strong>Expected value</strong><small>Model probability versus market price</small></span></li><li><b>2</b><span><strong>Confidence</strong><small>Signal quality and agreement</small></span></li><li><b>3</b><span><strong>Risk fit</strong><small>Price limits and uncertainty</small></span></li></ol></Card>
+        <details className="coach-research-panel">
+          <summary><span><Database size={16} /> Research &amp; data status</span><small>Sources, freshness &amp; ranking method</small><ChevronDown size={14} /></summary>
+          <div className="coach-research-panel-body">
+            <ProviderHealthPanel />
+            <Card className="glass-card"><header><span><Database size={17} /> Data context</span></header><div className="coach-context-body"><p><CheckCircle2 /> Seven provider services connected</p><p><ShieldCheck /> Credentials remain server-side</p><small>{latest ? `${latest.reply.snapshot.provider} · refreshed ${new Date(latest.reply.snapshot.generatedAt).toLocaleTimeString()}` : "Representative providers are active until live credentials are configured."}</small></div></Card>
+            <Card><header><span>How answers are ranked</span></header><ol className="coach-ranking"><li><b>1</b><span><strong>Expected value</strong><small>Model probability versus market price</small></span></li><li><b>2</b><span><strong>Confidence</strong><small>Signal quality and agreement</small></span></li><li><b>3</b><span><strong>Risk fit</strong><small>Price limits and uncertainty</small></span></li></ol></Card>
+          </div>
+        </details>
       </aside>
     </div>
   );
