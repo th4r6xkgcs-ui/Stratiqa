@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Bot, CheckCircle2, ChevronDown, Database, History, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUp, Bot, CheckCircle2, ChevronDown, Database, History, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { CoachInsights } from "./coach-insights";
 import type { CoachReply } from "@/lib/intelligence/types";
@@ -64,12 +64,19 @@ export function CoachWorkspace() {
     if (message.trim()) void ask(message.trim());
   }
 
+  function resetConversation() {
+    setTurns([]);
+    setStreamed("");
+    setError("");
+    setHistoryOpen(true);
+  }
+
   return (
     <div className="coach-layout">
       <Card className="coach-chat glass-card">
         <header>
           <span><Bot size={18} /> Coach conversation</span>
-          <div><Badge tone={latest?.reply.snapshot.mode === "live" ? "success" : "warning"}>{latest?.reply.snapshot.mode ?? "mock"} data</Badge><button className="history-toggle" onClick={() => setHistoryOpen((value) => !value)}><History size={14} /> History <ChevronDown size={13} /></button></div>
+          <div><Badge tone={latest?.reply.snapshot.mode === "live" ? "success" : "warning"}>{latest?.reply.snapshot.mode ?? "research"} data</Badge><button className="history-toggle" onClick={() => setHistoryOpen((value) => !value)}><History size={14} /> History <ChevronDown size={13} /></button>{turns.length ? <button className="coach-reset" onClick={resetConversation} aria-label="Start a new Coach conversation"><RotateCcw size={13} /> New</button> : null}</div>
         </header>
         <div className="coach-thread" aria-live="polite">
           <div className="coach-message coach-message--assistant"><Sparkles size={17} /><div><strong>STRATIQA Coach</strong><p>I analyze price, probability, form, injuries, weather, and market behavior together. Ask me where the slate&apos;s best risk-adjusted value sits.</p></div></div>
@@ -81,7 +88,7 @@ export function CoachWorkspace() {
             </div>
           )) : <button className="history-collapsed" onClick={() => setHistoryOpen(true)}>{turns.length} conversation {turns.length === 1 ? "turn" : "turns"} hidden</button>}
           {pending ? <div className="coach-loading"><i /><i /><i /> Comparing models and markets…</div> : null}
-          {error ? <p className="coach-error" role="alert">{error}</p> : null}
+          {error ? <div className="coach-error" role="alert"><p>{error}</p><button type="button" onClick={() => latest ? void ask(latest.question) : void ask("Explain today's top play")}>Try again</button></div> : null}
           <div ref={bottomRef} />
         </div>
         <div className="coach-prompts">{prompts.map((label) => <button key={label} disabled={pending} onClick={() => void ask(label)}>{label}</button>)}</div>

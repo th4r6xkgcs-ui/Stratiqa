@@ -17,8 +17,8 @@ type Recommendation = { id: string; modelId: string; modelName: string; category
 type ModelDesk = { bestEdge: Recommendation | null; safest: Recommendation | null; consensus: Recommendation[]; disagreements: Recommendation[]; passes: number };
 type MemoryItem = { id: string; model_id: string; model_version: number; event_name: string; selection: string; model_score: number; qualification_threshold: number; decision: "recommend" | "pass"; result: "win" | "loss" | "push" | null; observed_at: string };
 type Calibration = { resolved: number; unresolved: number; passes: number; buckets: Array<{ label: string; min: number; max: number; sample: number; wins: number; actual: number | null }> };
-const sports = ["MLB", "NBA", "NFL", "NHL", "WNBA", "NCAAF", "NCAAB"];
-const categories = [["player_prop", "Player Props", "Project individual player outcomes"], ["moneyline", "Game Winners", "Find the team most likely to win"], ["spread", "Point Spreads", "Measure performance against the line"], ["total", "Game Totals", "Project combined scoring"], ["live", "Live Markets", "React to in-game information"]];
+const sports = ["MLB", "NBA", "NFL", "NHL", "WNBA"];
+const categories = [["player_prop", "Player Props", "Project individual player outcomes"], ["moneyline", "Game Winners", "Find the team most likely to win"], ["spread", "Point Spreads", "Measure performance against the line"], ["total", "Game Totals", "Project combined scoring"]];
 const factorOptions = [
   ["market_value", "Best available price", "Find odds better than your projection"], ["recent_form", "Recent performance", "Reward meaningful form changes"],
   ["injuries", "Injuries & availability", "Adjust when important players change"], ["weather", "Weather & conditions", "Account for the playing environment"],
@@ -106,6 +106,16 @@ export function ModelWorkshop() {
 
       <footer>{step ? <Button variant="secondary" onClick={() => setStep((value) => value - 1)}><ArrowLeft /> Back</Button> : <span />}<Button disabled={!canContinue || saving} onClick={() => step < 2 ? setStep((value) => value + 1) : save()}>{saving ? "Building…" : step < 2 ? "Continue" : "Build My Model"} {step < 2 ? <ArrowRight /> : <Zap />}</Button></footer>
     </Card>
+
+    <section className="model-integrity-board">
+      <header><div><span className="landing-kicker">V20 MODEL STANDARD</span><h2>Build an edge you can explain.</h2><p>Every specialist follows the same evidence rules, so a high rating actually means something.</p></div><Badge tone="success">PREGAME ONLY</Badge></header>
+      <div>
+        <article><ShieldCheck /><span><strong>Lock the inputs</strong><small>Signals and price are captured before start. No live-market model can enter the rating system.</small></span></article>
+        <article><History /><span><strong>Keep the receipt</strong><small>Each model version preserves its factors, weights, threshold, and recommendation memory.</small></span></article>
+        <article><Target /><span><strong>Let the result decide</strong><small>Official settlement—not a user claim—builds category rating, calibration, and model reputation.</small></span></article>
+      </div>
+      <footer><span><b>Covered today</b> MLB · NBA · NFL · NHL · WNBA</span><span><b>Best starting move</b> Build one category specialist, then compare it after ten verified recommendations.</span></footer>
+    </section>
 
     <details className="model-learning-hub">
       <summary><BrainCircuit /><span><strong>Model Builder Field Guide</strong><small>Open the detail when you want to understand the evidence behind a signal.</small></span><ChevronDown /></summary>
