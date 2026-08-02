@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, Heart, Plus, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronDown, Heart, Plus, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { addToSlip } from "@/lib/picks/slip";
@@ -83,13 +83,13 @@ export function LiveBoard() {
 
     {loading ? <section className="board-loading">{[1, 2, 3].map((item) => <i key={item} />)}</section> :
       visible.length ? <section className="sportsbook-board">{visible.map((event) => {
+        const moneylineQuotes = event.quotes.filter((quote) => quote.marketKey === "h2h");
+        const additionalMarkets = (["spreads", "totals"] as const).map((market) => ({ market, quotes: event.quotes.filter((quote) => quote.marketKey === market) })).filter(({ quotes }) => quotes.length);
         return <Card className="sportsbook-event" key={event.id}>
           <header><div><Badge tone="success">PREGAME</Badge><time>Locks at {new Date(event.commenceTime).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}</time></div><button className={favorites.includes(event.id) ? "favorite" : ""} onClick={() => toggleFavorite(event.id)} aria-label={`Favorite ${event.awayTeam} at ${event.homeTeam}`}><Heart fill={favorites.includes(event.id) ? "currentColor" : "none"} /></button></header>
           <div className="board-teams"><span><i>{shortTeam(event.awayTeam)}</i><strong>{event.awayTeam}</strong><small>Away</small></span><b>AT</b><span><i>{shortTeam(event.homeTeam)}</i><strong>{event.homeTeam}</strong><small>Home</small></span></div>
-          <div className="board-markets">{(["h2h", "spreads", "totals"] as const).map((market) => {
-            const quotes = event.quotes.filter((quote) => quote.marketKey === market);
-            return quotes.length ? <Market event={event} marketKey={market} quotes={quotes} key={market} /> : null;
-          })}</div>
+          <div className="board-markets">{moneylineQuotes.length ? <Market event={event} marketKey="h2h" quotes={moneylineQuotes} /> : <p className="board-market-unavailable">Moneyline is not available for this game yet.</p>}</div>
+          {additionalMarkets.length ? <details className="board-other-markets"><summary>More markets <span>Spread &amp; total</span><ChevronDown /></summary><div>{additionalMarkets.map(({ market, quotes }) => <Market event={event} marketKey={market} quotes={quotes} key={market} />)}</div></details> : null}
           <footer><span><ShieldCheck /> Pregame picks only · market chance shown, model edge on the intelligence page</span><Link href={`/matchups/${event.slug}`}>View intelligence <ArrowRight /></Link></footer>
         </Card>;
       })}</section> :
