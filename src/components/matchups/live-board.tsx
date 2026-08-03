@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, ChevronDown, Heart, Plus, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronDown, Heart, Plus, Search, ShieldCheck, Sparkles, Target } from "lucide-react";
 import { Badge, Card } from "@/components/ui/primitives";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { addToSlip } from "@/lib/picks/slip";
@@ -91,6 +91,7 @@ export function LiveBoard() {
           <div className="board-markets">{moneylineQuotes.length ? <Market event={event} marketKey="h2h" quotes={moneylineQuotes} /> : <p className="board-market-unavailable">Moneyline is not available for this game yet.</p>}</div>
           {additionalMarkets.length ? <details className="board-other-markets"><summary>More markets <span>Spread &amp; total</span><ChevronDown /></summary><div>{additionalMarkets.map(({ market, quotes }) => <Market event={event} marketKey={market} quotes={quotes} key={market} />)}</div></details> : null}
           <footer><span><ShieldCheck /> Pregame picks only · market chance shown, model edge on the intelligence page</span><Link href={`/matchups/${event.slug}`}>View intelligence <ArrowRight /></Link></footer>
+          <nav className="board-next-actions" aria-label={`More ways to research ${event.awayTeam} at ${event.homeTeam}`}><Link href={`/matchups/${event.slug}`}><Sparkles /> Full game report</Link><Link href="/props"><Target /> Explore player props</Link><Link href="/games"><CalendarDays /> Watch in Game Center</Link><Link href="/coach"><ShieldCheck /> Ask AI Coach</Link></nav>
         </Card>;
       })}</section> :
       <Card className="board-empty"><CalendarDays /><h2>No open markets here right now</h2><p>This league may be off-season, between slates, or temporarily unavailable. Try another league or date—nothing is broken.</p><button onClick={() => { setSelectedDate("all"); setQuery(""); }}>Clear filters</button></Card>}
