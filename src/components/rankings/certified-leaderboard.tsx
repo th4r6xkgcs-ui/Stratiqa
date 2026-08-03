@@ -42,7 +42,9 @@ export function CertifiedLeaderboard() {
       fetch("/api/picks", { cache: "no-store" }).then((response) => response.json()),
     ]).then(([profileResult, picksResult]) => {
       setProfile(profileResult.profile ?? {});
-      setRatings(picksResult.ratings ?? []);
+      const nextRatings = picksResult.ratings ?? [];
+      setRatings(nextRatings);
+      if (nextRatings.length) setCategory([...nextRatings].sort((left, right) => right.rating - left.rating || right.gradedPicks - left.gradedPicks)[0].category);
       setRatingImpacts(picksResult.ratingImpacts ?? []);
     }).catch(() => setProfile({}));
   }, []);
@@ -132,7 +134,7 @@ export function CertifiedLeaderboard() {
       </Card>
       <Card className="rival-preview">
         <header><span><Swords /> NEAR YOUR RATING</span><Badge>{scope.toUpperCase()}</Badge></header>
-        {!remaining && rivals.length ? rivals.map((rival) => <span key={`${rival.public_alias}-${rival.rank}`}><b>#{rival.rank}</b><strong>{rival.public_alias}</strong><em>{Math.round(rival.rating)} · {Math.abs(Math.round(rival.rating - standing.rating))} away</em></span>) : <div><Users /><strong>Rivals appear after placement</strong><small>Complete your category placement picks and join the public board.</small></div>}
+        {!remaining && rivals.length ? <><div className="rival-preview-list">{rivals.map((rival) => <span key={`${rival.public_alias}-${rival.rank}`}><b>#{rival.rank}</b><strong>{rival.public_slug ? <Link href={`/analysts/${rival.public_slug}`}>{rival.public_alias}</Link> : rival.public_alias}</strong><em>{Math.round(rival.rating)} · {Math.abs(Math.round(rival.rating - standing.rating))} away</em></span>)}</div><footer><span>Closest analysts in {categoryLabel.toLowerCase()}</span><Link href="/rivals">Open rival board <ArrowRight /></Link></footer></> : <div><Users /><strong>Rivals appear after placement</strong><small>Complete your category placement picks and join the public board.</small></div>}
       </Card>
     </section>
 
