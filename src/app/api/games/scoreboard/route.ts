@@ -7,8 +7,8 @@ export async function GET(request: Request) {
   if (!scoreboardSports.includes(sport as ScoreboardSport)) return Response.json({ error: "Unsupported league." }, { status: 400 });
   if (date && !/^\d{8}$/.test(date)) return Response.json({ error: "Invalid scoreboard date." }, { status: 400 });
   try {
-    const events = await getScoreboard(sport as ScoreboardSport, date ?? undefined);
-    return Response.json({ events, provider: "ESPN public scoreboard", updatedAt: new Date().toISOString(), refreshAfterSeconds: 30 });
+    const result = await getScoreboard(sport as ScoreboardSport, date ?? undefined);
+    return Response.json({ ...result, updatedAt: new Date().toISOString() });
   } catch {
     return Response.json({ error: "Public scoreboard is temporarily unavailable." }, { status: 503 });
   }

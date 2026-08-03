@@ -3,6 +3,7 @@ import "server-only";
 export const scoreboardSports = ["baseball_mlb", "basketball_nba", "americanfootball_nfl", "icehockey_nhl", "basketball_wnba"] as const;
 export type ScoreboardSport = typeof scoreboardSports[number];
 export type ScoreboardEvent = { id: string; sportKey: ScoreboardSport; eventName: string; commenceTime: string; awayTeam: string; homeTeam: string; awayScore: number | null; homeScore: number | null; state: "pre" | "in" | "post"; status: string };
+export type ScoreboardResult = { events: ScoreboardEvent[]; provider: "BALLDONTLIE" | "ESPN public scoreboard"; refreshAfterSeconds: number };
 
 const leagues: Record<ScoreboardSport, string> = { baseball_mlb: "baseball/mlb", basketball_nba: "basketball/nba", americanfootball_nfl: "football/nfl", icehockey_nhl: "hockey/nhl", basketball_wnba: "basketball/wnba" };
 const cache = new Map<ScoreboardSport, { expiresAt: number; events: ScoreboardEvent[] }>();
@@ -42,15 +43,15 @@ async function getBallDontLieScoreboard(sportKey: ScoreboardSport, date?: string
   } finally { clearTimeout(timeout); }
 }
 
-export async function getScoreboard(sportKey: ScoreboardSport, date?: string): Promise<ScoreboardEvent[]> {
+export async function getScoreboard(sportKey: ScoreboardSport, date?: string): Promise<ScoreboardResult> {
   const cacheKey = `${sportKey}:${date ?? "today"}` as ScoreboardSport;
   const cached = cache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.events;
+  if (cached && cached.expiresAt > Date.now()) return { events: cached.events, provider: ballDontLieSports[sportKey] && process.env.STRATIQA_BALLDONTLIE_API_KEY ? "BALLDONTLIE" : "ESPN public scoreboard", refreshAfterSeconds: 25 };
   try {
     const ballDontLie = await getBallDontLieScoreboard(sportKey, date);
     if (ballDontLie) {
-      cache.set(cacheKey, { events: ballDontLie, expiresAt: Date.now() + 120_000 });
-      return ballDontLie;
+      cache.set(cacheKey, { events: ballDontLie, expiresAt: Date.now() + 25_000 });
+      return { events: ballDontLie, provider: "BALLDONTLIE", refreshAfterSeconds: 25 };
     }
   } catch { /* ESPN remains the resilient public fallback. */ }
   const controller = new AbortController();
@@ -68,6 +69,6 @@ export async function getScoreboard(sportKey: ScoreboardSport, date?: string): P
       return [{ id: event.id, sportKey, eventName: event.name ?? `${away.team.displayName} at ${home.team.displayName}`, commenceTime: event.date ?? new Date().toISOString(), awayTeam: away.team.displayName, homeTeam: home.team.displayName, awayScore: Number.isFinite(Number(away.score)) ? Number(away.score) : null, homeScore: Number.isFinite(Number(home.score)) ? Number(home.score) : null, state, status: event.status?.type?.shortDetail ?? event.status?.type?.detail ?? (state === "pre" ? "Scheduled" : state === "in" ? "Live" : "Final") }];
     });
     cache.set(cacheKey, { events, expiresAt: Date.now() + 25_000 });
-    return events;
+    return { events, provider: "ESPN public scoreboard", refreshAfterSeconds: 25 };
   } finally { clearTimeout(timeout); }
 }

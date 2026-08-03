@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Bell, Eye, Heart, MessageCircle, RefreshCw, ShieldCheck, TrendingUp, X } from "lucide-react";
 import { GameRoom } from "@/components/games/game-room";
 import { usePersistentState } from "@/hooks/use-persistent-state";
+import { TeamMark } from "@/components/ui/team-mark";
 
 type Sport = "baseball_mlb" | "basketball_nba" | "americanfootball_nfl" | "icehockey_nhl" | "basketball_wnba";
 type Event = { id: string; eventName: string; commenceTime: string; awayTeam: string; homeTeam: string; awayScore: number | null; homeScore: number | null; state: "pre" | "in" | "post"; status: string };
@@ -37,6 +38,8 @@ export function LeagueScoreboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [provider, setProvider] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [focusedId, setFocusedId] = useState("");
   const [watchlist, setWatchlist] = usePersistentState<string[]>("stratiqa.public-game-watchlist.v1", []);
   const [scoreHistory, setScoreHistory] = usePersistentState<Record<string, ScoreSnapshot[]>>("stratiqa.public-game-score-history.v1", {});
@@ -51,6 +54,8 @@ export function LeagueScoreboard() {
       if (!response.ok) throw new Error(data.error ?? "Scoreboard unavailable.");
       const nextEvents = (data.events ?? []) as Event[];
       setEvents(nextEvents);
+      setProvider(typeof data.provider === "string" ? data.provider : "Scoreboard provider");
+      setUpdatedAt(typeof data.updatedAt === "string" ? data.updatedAt : new Date().toISOString());
       for (const event of nextEvents) {
         if (!watchlist.includes(event.id) || event.awayScore == null || event.homeScore == null) continue;
         const signature = `${event.awayScore}:${event.homeScore}:${event.state}`;
@@ -89,7 +94,7 @@ export function LeagueScoreboard() {
   const enableAlerts = async () => { if (typeof Notification !== "undefined") setNotificationPermission(await Notification.requestPermission()); };
 
   return <section className="league-scoreboard">
-    <header><div><Activity /><span><strong>Every game, even without a ticket</strong><small><Eye /> {watchlist.length ? `${watchlist.length} game${watchlist.length === 1 ? "" : "s"} in your watchlist · ` : ""}Scores and discussion only—no live betting.</small></span></div><div className="scoreboard-actions">{notificationPermission === "default" && watchlist.length ? <button type="button" onClick={() => void enableAlerts()}><Bell /> Alerts</button> : null}<button type="button" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? "spinning" : ""} /> Refresh</button></div></header>
+    <header><div><Activity /><span><strong>Every game, even without a ticket</strong><small><Eye /> {watchlist.length ? `${watchlist.length} game${watchlist.length === 1 ? "" : "s"} in your watchlist · ` : ""}Scores only—no live betting. {provider ? `${provider} · refreshed ${updatedAt ? new Date(updatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "now"}` : ""}</small></span></div><div className="scoreboard-actions">{notificationPermission === "default" && watchlist.length ? <button type="button" onClick={() => void enableAlerts()}><Bell /> Alerts</button> : null}<button type="button" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? "spinning" : ""} /> Refresh</button></div></header>
     <nav aria-label="League">{leagues.map((league) => <button type="button" className={sport === league.key ? "active" : ""} key={league.key} onClick={() => { setSport(league.key); setFocusedId(""); }}>{league.label}</button>)}</nav>
     <div className="scoreboard-days">{boardDays.map((day) => <button type="button" className={dayOffset === day.offset ? "active" : ""} key={day.offset} onClick={() => { setDayOffset(day.offset); setFocusedId(""); }}>{day.label}</button>)}</div>
     {loading ? <div className="league-scoreboard-loading">Loading public scores...</div> : error ? <div className="league-scoreboard-empty"><ShieldCheck />{error}</div> : visibleEvents.length ? <>
@@ -98,7 +103,7 @@ export function LeagueScoreboard() {
         const focused = focusedId === event.id;
         return <article className={`${watching ? "watching " : ""}${focused ? "focused" : ""}`} key={event.id}>
           <header><span className={event.state}>{event.state === "in" ? "LIVE" : event.state === "post" ? "FINAL" : "SCHEDULED"}</span><div><small>{event.status}</small><button type="button" className="scoreboard-watch" onClick={() => toggleWatch(event)} aria-label={`${watching ? "Remove" : "Add"} ${event.eventName} ${watching ? "from" : "to"} watchlist`}><Heart fill={watching ? "currentColor" : "none"} /></button></div></header>
-          <div><span><strong>{event.awayTeam}</strong><b>{event.awayScore ?? "–"}</b></span><span><strong>{event.homeTeam}</strong><b>{event.homeScore ?? "–"}</b></span></div>
+          <div><span><strong><TeamMark name={event.awayTeam} />{event.awayTeam}</strong><b>{event.awayScore ?? "–"}</b></span><span><strong><TeamMark name={event.homeTeam} />{event.homeTeam}</strong><b>{event.homeScore ?? "–"}</b></span></div>
           <footer><small>{event.state === "pre" ? new Date(event.commenceTime).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }) : "Watch-only tracking"}</small><button type="button" onClick={() => setFocusedId(focused ? "" : event.id)}>{focused ? "Close details" : "Open details"}<MessageCircle /></button></footer>
         </article>;
       })}</div>
