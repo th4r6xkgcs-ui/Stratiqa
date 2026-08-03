@@ -78,6 +78,7 @@ export function ModelWorkshop() {
   const applyTemplate = (template: typeof templates[number]) => {
     setCategory(template.category); setSelected(template.factors); setStrategy(template.strategy); setRisk(template.risk);
     setWeights(factorWeights(template.factors, template.strategy)); setName(`${sport} ${template.name}`);
+    setStep(1);
   };
   const canContinue = step === 0 || (step === 1 && selected.length >= 2) || (step === 2 && (name.trim() || suggestedName));
   async function save() {
