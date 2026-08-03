@@ -51,6 +51,8 @@ npm run verify:env
 npm run check
 ```
 
+Vercel runs the same environment preflight before its production build, so a missing database, session, or live-odds variable cannot become a silently broken deployment.
+
 After deployment, open `/api/ready`. A `200` response with `"status":"ready"` confirms configuration and provider health. The daily settlement job is already scheduled through `vercel.json`.
 
 ## Getting Started
