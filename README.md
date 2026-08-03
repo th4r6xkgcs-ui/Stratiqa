@@ -20,8 +20,38 @@ The same gate runs in GitHub Actions for pull requests and pushes to the release
 V15 uses a server-only adapter boundary. Without credentials, the app defaults to clearly labeled representative data:
 
 ```bash
-STRATIQA_DATA_PROVIDER=mock
+STRATIQA_PROVIDER_MODE=mock
 ```
+
+## Production launch checklist
+
+For a working production app, add these variables in Vercel for **Production** and **Preview**:
+
+```bash
+NEXT_PUBLIC_APP_URL=https://your-production-domain
+STRATIQA_SESSION_SECRET=<a unique secret with 32+ characters>
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Supabase publishable key>
+SUPABASE_SERVICE_ROLE_KEY=<Supabase service-role key>
+```
+
+For live odds and pregame lines, also set:
+
+```bash
+STRATIQA_PROVIDER_MODE=live
+STRATIQA_ODDS_API_KEY=<The Odds API key>
+```
+
+`STRATIQA_BALLDONTLIE_API_KEY` is optional; it improves public scoreboards for supported leagues. Leave the provider mode as `mock` until the Odds API key is ready—the product will remain clearly labeled as simulation data.
+
+Before deploying, run:
+
+```bash
+npm run verify:env
+npm run check
+```
+
+After deployment, open `/api/ready`. A `200` response with `"status":"ready"` confirms configuration and provider health. The daily settlement job is already scheduled through `vercel.json`.
 
 ## Getting Started
 
