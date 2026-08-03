@@ -34,6 +34,30 @@ export default async function MatchupDetail({ params }: { params: Promise<{ slug
         <div className="intelligence-grade"><ConfidenceRing value={matchup.confidence} size="lg" label="Confidence" /><span>VALUE GRADE<strong>{matchup.valueGrade}</strong></span></div>
       </Card>
 
+      <section className="matchup-decision-snapshot" aria-label="Quick matchup decision guide">
+        <header>
+          <span><Sparkles size={15} /> Start here</span>
+          <small>A quick read before you open the full research.</small>
+        </header>
+        <div>
+          <article>
+            <small>THE CASE</small>
+            <strong>{matchup.pick}</strong>
+            <p>{matchup.aiSummary}</p>
+          </article>
+          <article>
+            <small>WHY IT STANDS OUT</small>
+            <strong>+{matchup.modelEdge}% model edge</strong>
+            <p>The projection is {matchup.winProbability}% versus the available market price, with +{matchup.expectedValue}% expected value.</p>
+          </article>
+          <article>
+            <small>WHAT TO CHECK</small>
+            <strong>{matchup.injuryImpact === 0 ? "No major injury flag" : `${matchup.injuryImpact > 0 ? "+" : ""}${matchup.injuryImpact}% injury impact`}</strong>
+            <p>Review market movement and the full reasoning before you lock in any pregame pick.</p>
+          </article>
+        </div>
+      </section>
+
       <section className="intelligence-stats">
         <StatMeter label="Win probability" value={`${matchup.winProbability}%`} detail="Model projection" />
         <StatMeter label="Model edge" value={`+${matchup.modelEdge}%`} detail="vs market" tone="purple" />
