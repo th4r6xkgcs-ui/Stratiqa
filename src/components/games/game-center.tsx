@@ -9,6 +9,7 @@ import { LeagueScoreboard } from "@/components/games/league-scoreboard";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import { updateGameTimelines } from "@/lib/games/timeline.js";
 import { livePickProgress } from "@/lib/picks/live-progress.js";
+import { TeamMark } from "@/components/ui/team-mark";
 
 type PickState = "upcoming" | "live" | "awaiting" | "settled";
 type LivePick = {
@@ -147,7 +148,7 @@ export function GameCenter() {
       visible.length ? <section className="game-list">{visible.map((game) => <Card className={`tracked-game ${game.state}`} key={game.id}>
         <header><div><StateBadge state={game.state} /><span>{game.sportKey ? leagues[game.sportKey] ?? game.sportKey : "SPORT"} · {game.picks.length} pick{game.picks.length === 1 ? "" : "s"}</span></div><div className="tracked-game-actions"><time>{game.state === "upcoming" && game.startsAt ? `Starts ${new Date(game.startsAt).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}` : game.state === "live" ? "Score updates automatically" : game.state === "awaiting" ? "Awaiting official confirmation" : "Official result recorded"}</time><button type="button" className={alerts.includes(game.id) ? "active" : ""} onClick={() => setAlerts(alerts.includes(game.id) ? alerts.filter((id) => id !== game.id) : [...alerts, game.id])} aria-label={`${alerts.includes(game.id) ? "Disable" : "Enable"} alerts for ${game.eventName}`}><Bell /></button><button type="button" className={favorites.includes(game.id) ? "active" : ""} onClick={() => setFavorites(favorites.includes(game.id) ? favorites.filter((id) => id !== game.id) : [...favorites, game.id])} aria-label={`${favorites.includes(game.id) ? "Remove" : "Add"} favorite ${game.eventName}`}><Heart fill={favorites.includes(game.id) ? "currentColor" : "none"} /></button></div></header>
         <div className="tracked-score">
-          {game.awayTeam && game.homeTeam ? <><span><small>AWAY</small><strong>{game.awayTeam}</strong></span><b>{game.awayScore ?? "–"}<em>:</em>{game.homeScore ?? "–"}</b><span><small>HOME</small><strong>{game.homeTeam}</strong></span></> : <><span><small>EVENT</small><strong>{game.eventName}</strong></span><b><CalendarClock /></b><span><small>STATUS</small><strong>{game.state === "upcoming" ? "Scheduled" : "Score pending"}</strong></span></>}
+          {game.awayTeam && game.homeTeam ? <><span><small>AWAY</small><strong><TeamMark name={game.awayTeam} size="md" />{game.awayTeam}</strong></span><b>{game.awayScore ?? "–"}<em>:</em>{game.homeScore ?? "–"}</b><span><small>HOME</small><strong>{game.homeTeam}<TeamMark name={game.homeTeam} size="md" /></strong></span></> : <><span><small>EVENT</small><strong>{game.eventName}</strong></span><b><CalendarClock /></b><span><small>STATUS</small><strong>{game.state === "upcoming" ? "Scheduled" : "Score pending"}</strong></span></>}
         </div>
         <div className="tracked-picks">{game.picks.map((pick) => {
           const progress = livePickProgress(pick, game);
